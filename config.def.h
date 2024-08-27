@@ -5,10 +5,10 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
+static char *font = "Maple Mono NF CN:style=Medium:pixelsize=27:antialias=true:autohint=true";
 /* Spare fonts */
 static char *font2[] = {
-/*	"Inconsolata for Powerline:pixelsize=12:antialias=true:autohint=true", */
+	"Source Han Sans CN:pixelsize=27:style=Bold:antialias=true:autohint=true",
 /*	"Hack Nerd Font Mono:pixelsize=11:antialias=true:autohint=true", */
 };
 
@@ -30,7 +30,7 @@ static char *url_opener = "xdg-open";
  * 4: value of shell in /etc/passwd
  * 5: value of shell in config.h
  */
-static char *shell = "/bin/sh";
+static char *shell = "/bin/fish";
 char *utmp = NULL;
 /* scroll program: to enable use a string like "scroll" */
 char *scroll = NULL;
@@ -88,6 +88,14 @@ static float maxlatency = 33;
 static unsigned int su_timeout = 200;
 
 /*
+ * auto scroll timeout for the auto scroll when use mouse to select
+ * attribute.
+ */
+static unsigned int autoscrolltimeout = 200;
+static float autoscrollacceleration = 0.2;
+
+
+/*
  * blinking timeout (set to 0 to disable blinking) for the terminal blinking
  * attribute.
  */
@@ -99,7 +107,7 @@ static unsigned int blinktimeout = 800;
 static unsigned int cursorthickness = 2;
 
 /* Hide the X cursor whenever a key is pressed. 0: off, 1: on */
-int hidecursor = 0;
+int hidecursor = 1;
 
 /* Ligatures. 0: off, 1: on */
 int ligatures = 0;
@@ -144,44 +152,44 @@ char *termname = "st-256color";
  * -a` »tab0« should appear. You can tell the terminal to not expand tabs by
  *  running following command:
  *
- *	stty tabs
+ *	stty tabsconfigure.notify 
  */
 unsigned int tabspaces = 8;
 
 /* bg opacity */
-float alpha = 0.93;
-float alphaUnfocused = 0.6;
+float alpha = 0.7;
+float alphaUnfocused = 0.7;
 
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
-	"black",
-	"red3",
-	"green3",
-	"yellow3",
-	"blue2",
-	"magenta3",
-	"cyan3",
-	"gray90",
+	"#262626",
+	"#cc0000",
+	"#42B63F",
+	"#DD9400",
+	"#DD9400",
+	"#bf78cf",
+	"#74cd45",
+	"#D1B88E",
 
 	/* 8 bright colors */
-	"gray50",
-	"red",
-	"green",
-	"yellow",
-	"#5c5cff",
-	"magenta",
-	"cyan",
-	"white",
+	"#a79e67",
+	"#ef2929",
+	"#8ae234",
+	"#ead96b",
+	"#729fcf",
+	"#ad7fa8",
+	"#ead96b",
+	"#eeeeec",
 
 	[255] = 0,
 
 	/* more colors can be added after 255 to use with DefaultXX */
 	"#cccccc", /* 256 -> cursor */
 	"#555555", /* 257 -> rev cursor */
-	"gray90",  /* 258 -> foreground */
-	"black",   /* 259 -> background */
-	"black",   /* 260 -> background unfocused */
+	"#d0b78d",  /* 258 -> foreground */
+	"#000000",   /* 259 -> background */
+	"#000000",   /* 260 -> background unfocused */
 };
 
 /*
@@ -230,7 +238,7 @@ static Rune stcursor = 0x2603; /* snowman ("☃") */
  * 1: allow blinking
  * 2: force to always blink
  */
-static unsigned int cursorblinking = 1;
+static unsigned int cursorblinking = 0;
 
 /* Specifies how fast the blinking cursor blinks */
 static unsigned int cursorblinktimeout = 800;
@@ -269,14 +277,13 @@ static uint forcemousemod = ShiftMask;
  * Beware that overloading Button1 will disable the selection.
  */
 static MouseShortcut mshortcuts[] = {
-	/* mask                 button   function        argument       release  screen */
-	{ XK_ANY_MOD,           Button2, clippaste,      {.i = 0},      1 },
-	{ ShiftMask,            Button4, kscrollup,      {.i = 1},      0, S_PRI},
-	{ ShiftMask,            Button5, kscrolldown,    {.i = 1},      0, S_PRI},
-	{ XK_NO_MOD,            Button4, kscrollup,      {.i = 1},      0, S_PRI },
-	{ XK_NO_MOD,            Button5, kscrolldown,    {.i = 1},      0, S_PRI },
-	{ XK_ANY_MOD,           Button4, ttysend,        {.s = "\031"}, 0, S_ALT },
-	{ XK_ANY_MOD,           Button5, ttysend,        {.s = "\005"}, 0, S_ALT },
+	/* mask                 button   function        argument       release */
+	{ XK_ANY_MOD,           Button2, selpaste,       {.i = 0},      1 },
+	{ XK_ANY_MOD,           Button3, clippaste,       {.i = 0},      0 },
+	{ XK_NO_MOD,            Button4, kscrollup,      {.i = 1}         },
+	{ XK_NO_MOD,            Button5, kscrolldown,    {.i = 1}         },
+	{ ControlMask,          Button4, kscrollup,      {.i = -1}        },
+	{ ControlMask,          Button5, kscrolldown,    {.i = -1}        },
 };
 
 /* Internal keyboard shortcuts. */

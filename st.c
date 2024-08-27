@@ -960,6 +960,8 @@ ttywriteraw(const char *s, size_t n)
 	fd_set wfd, rfd;
 	ssize_t r;
 	size_t lim = 256;
+	// XEvent ev;
+	// int xfd = XConnectionNumber(xw.dpy);
 
 	/*
 	 * Remember that we are using a pty, which might be a modem line.
@@ -972,6 +974,7 @@ ttywriteraw(const char *s, size_t n)
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &wfd);
 		FD_SET(cmdfd, &rfd);
+		// FD_SET(xfd, &rfd);
 
 		/* Check if we can write. */
 		if (pselect(cmdfd+1, &rfd, &wfd, NULL, NULL, NULL) < 0) {
@@ -979,6 +982,17 @@ ttywriteraw(const char *s, size_t n)
 				continue;
 			die("select failed: %s\n", strerror(errno));
 		}
+
+		// while (XPending(xw.dpy)) {
+		// 	XNextEvent(xw.dpy, &ev);
+		// 	if (XFilterEvent(&ev, None))
+		// 		continue;
+		// 	if (ev.type == ClientMessage && ev.xclient.data.l[0] == xw.wmdeletewin) {
+		// 		ttyhangup();
+		// 		exit(0);
+		// 	}				
+		// }
+
 		if (FD_ISSET(cmdfd, &wfd)) {
 			/*
 			 * Only write the bytes written by ttywrite() or the

@@ -7,11 +7,11 @@
 ! - See config.def.h for more information about these options
 
 ! Font
-St.font:            JetBrainsMono Nerd Font:style=Medium:size=10:antialias=true:autohint=true
+St.font:            JetBrainsMono Nerd Font:style=Medium:pixelsize=24:antialias=true:autohint=true
 
 ! Fallback fonts (max 8)
-St.font_fallback1:  JoyPixels:size=10.0:antialias=true:autohint=true
-St.font_fallback2:  Symbola:size=13.5:antialias=true:autohint=true
+  St.font_fallback1:  Source Han Sans CN:style=Medium:size=18:antialias=true:autohint=true
+! St.font_fallback2:  Symbola:size=13.5:antialias=true:autohint=true
 
 ! Default columns and rows numbers
 St.cols:            80
@@ -24,31 +24,31 @@ St.borderpx:        2
 St.anysize:         1
 
 ! Background opacity
-St.alpha:           0.93
-St.alphaUnfocused:  0.60
+St.alpha:           0.7
+St.alphaUnfocused:  0.7
 
 ! Colors
-St.foreground:      gray90
-St.background:      black
-St.bgUnfocused:     black
+St.foreground:      #d0b78d
+St.background:      #000000
+St.bgUnfocused:     #000000
 St.cursorColor:     #cccccc
 St.reverseCursor:   #555555
-St.color0:          black
-St.color1:          red3
-St.color2:          green3
-St.color3:          yellow3
-St.color4:          blue2
-St.color5:          magenta3
-St.color6:          cyan3
-St.color7:          gray90
-St.color8:          gray50
-St.color9:          red
-St.color10:         green
-St.color11:         yellow
-St.color12:         #5c5cff
-St.color13:         magenta
-St.color14:         cyan
-St.color15:         white
+St.color0:          #262626
+St.color1:          #cc0000
+St.color2:          #42B63F
+St.color3:          #DD9400
+St.color4:          #DD9400
+St.color5:          #bf78cf
+St.color6:          #74cd45
+St.color7:          #D1B88E
+St.color8:          #a79e67
+St.color9:          #ef2929
+St.color10:         #8ae234
+St.color11:         #ead96b
+St.color12:         #729fcf
+St.color13:         #ad7fa8
+St.color14:         #ead96b
+St.color15:         #eeeeec
 
 ! Foreground and background color of search results
 St.highlightfg:     15
@@ -60,10 +60,10 @@ St.highlightbg:     160
 St.dynamic_cursor_color: 1
 
 ! Default style of cursor
-St.cursorstyle:     2
+St.cursorstyle:     6
 
 ! Controls the blinking of the cursor
-St.cursorblinking:  1
+St.cursorblinking:  0
 
 ! Specifies how fast the blinking cursor blinks
 St.cursorblinktimeout: 800
@@ -81,7 +81,7 @@ St.boxdraw_bold:    0
 St.boxdraw_braille: 0
 
 ! Hide the X cursor whenever a key is pressed: 0 = off, 1 = on
-St.hidecursor:      0
+St.hidecursor:      1
 
 ! Ligatures: 0 = off, 1 = on
 St.ligatures:       0
@@ -102,13 +102,15 @@ St.undercurl_yoffset:               0
 St.undercurl_height_scale:          1.0
 
 ! Misc settings
-St.shell:               /bin/sh
-St.minlatency:          2
-St.maxlatency:          33
-St.su_timeout:          200
-St.blinktimeout:        800
-St.bellvolume:          0
-St.tabspaces:           8
-St.disable_bold:        0
-St.disable_italic:      0
-St.bold_is_not_bright:  1
+St.shell:                   /bin/fish
+St.minlatency:              2
+St.maxlatency:              33
+St.su_timeout:              200
+St.blinktimeout:            800
+St.bellvolume:              0
+St.tabspaces:               8
+St.disable_bold:            0
+St.disable_italic:          0
+St.bold_is_not_bright:      1
+St.autoscrolltimeout:       200
+St.autoscrollacceleration:  0.2

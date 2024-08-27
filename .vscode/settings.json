@@ -1,0 +1,23 @@
+{
+    "files.associations": {
+        "condition_variable": "c",
+        "future": "c",
+        "complex": "c",
+        "format": "c",
+        "chrono": "c",
+        "*.ipp": "c",
+        "ratio": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "span": "c",
+        "any": "c",
+        "numbers": "c",
+        "*.tcc": "c",
+        "deque": "c",
+        "forward_list": "c",
+        "list": "c",
+        "vector": "c",
+        "valarray": "c"
+    }
+}
