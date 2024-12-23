@@ -63,6 +63,7 @@ enum glyph_attribute {
 	ATTR_FTCS_PROMPT    = 1 << 14,  /* OSC "133;A" - start of shell prompt */
 	ATTR_BOLD_FAINT = ATTR_BOLD | ATTR_FAINT,
 	ATTR_SIXEL          = 1 << 15,
+	ATTR_FLASH_LABEL    = 1 << 16,
 };
 
 typedef struct _ImageList {
@@ -124,7 +125,8 @@ typedef XftGlyphFontSpec GlyphFontSpec;
 #define Glyph Glyph_
 typedef struct {
 	Rune u;           /* character code */
-	ushort mode;      /* attribute flags */
+	Rune ubk;			 /* character code backup*/
+	uint32_t mode;      /* attribute flags */
 	uint32_t fg;      /* foreground  */
 	uint32_t bg;      /* background  */
 	uint32_t ustyle;  /* underline style and color */

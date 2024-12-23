@@ -6,6 +6,7 @@ enum keyboardselect_mode {
 	KBDS_MODE_LSELECT = 1<<2,
 	KBDS_MODE_FIND    = 1<<3,
 	KBDS_MODE_SEARCH  = 1<<4,
+	KBDS_MODE_FLASH  = 1<<5,
 };
 
 enum cursor_wrap {
@@ -32,18 +33,229 @@ struct {
 	Glyph *str;
 } kbds_searchobj;
 
+// 动态字符数组结构体
+typedef struct {
+    char *array;    // 指向动态分配的字符数组
+    size_t used;    // 当前已使用的数组大小
+    size_t size;    // 动态数组分配的总大小
+} CharArray;
+
+typedef struct {
+    KCursor *array;    // 指向动态分配的字符数组
+    size_t used;    // 当前已使用的数组大小
+    size_t size;    // 动态数组分配的总大小
+} KCursorArray;
+
 static int kbds_in_use, kbds_quant;
 static int kbds_seltype = SEL_REGULAR;
 static int kbds_mode;
 static int kbds_finddir, kbds_findtill;
 static Rune kbds_findchar;
 static KCursor kbds_c, kbds_oc;
+static CharArray flash_next_char_record,flash_used_label;
+static KCursorArray flash_kcursor_record;
+
+static const char *flash_key_label[52] = {
+	"j", "f", "d", "k", "l", "h", "g", "a", "s", "o", 
+	"i", "e", "u", "n", "c", "m", "r","p", "b", "t", 
+	"w", "v", "x", "y", "q", "z",
+	"I", "J", "L", "H", "A", "B", "Y", "D", "E", "F", 
+	"G", "Q", "R", "T", "U", "V", "W", "X", "Z", "C",
+	"K", "M", "N", "O", "P", "S"
+};
+
+
+void init_char_array(CharArray *a, size_t initialSize) {
+    a->array = (char *)malloc(initialSize * sizeof(char));
+    if (!a->array) {
+        perror("Failed to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+    a->used = 0;
+    a->size = initialSize;
+}
+
+void insert_char_array(CharArray *a, char element) {
+    if (a->used == a->size) {
+        a->size *= 2;
+        a->array = (char *)realloc(a->array, a->size * sizeof(char));
+        if (!a->array) {
+            perror("Failed to reallocate memory");
+            exit(EXIT_FAILURE);
+        }
+    }
+    a->array[a->used++] = element;
+}
+
+void reset_char_array(CharArray *a) {
+    free(a->array);
+    a->array = NULL;
+    a->used = 0;
+    a->size = 0;
+}
+
+void init_kcursor_array(KCursorArray *a, size_t initialSize) {
+    a->array = (KCursor *)malloc(initialSize * sizeof(KCursor));
+    if (!a->array) {
+        perror("Failed to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+    a->used = 0;
+    a->size = initialSize;
+}
+
+void insert_kcursor_array(KCursorArray *a, KCursor element) {
+    if (a->used == a->size) {
+        size_t newSize = a->size == 0 ? 1 : a->size * 2;
+        KCursor *newArray = (KCursor *)realloc(a->array, newSize * sizeof(KCursor));
+        if (!newArray) {
+            perror("Failed to reallocate memory");
+            exit(EXIT_FAILURE);
+        }
+        a->array = newArray;
+        a->size = newSize;
+    }
+    a->array[a->used++] = element;
+}
+
+void reset_kcursor_array(KCursorArray *a) {
+    free(a->array);
+    a->array = NULL;
+    a->used = 0;
+    a->size = 0;
+}
+
+char keysym_to_char(unsigned int keysym) {
+    switch (keysym) {
+        case XK_0: return '0';
+        case XK_1: return '1';
+        case XK_2: return '2';
+        case XK_3: return '3';
+        case XK_4: return '4';
+        case XK_5: return '5';
+        case XK_6: return '6';
+        case XK_7: return '7';
+        case XK_8: return '8';
+        case XK_9: return '9';
+        case XK_KP_0: return '0';
+        case XK_KP_1: return '1';
+        case XK_KP_2: return '2';
+        case XK_KP_3: return '3';
+        case XK_KP_4: return '4';
+        case XK_KP_5: return '5';
+        case XK_KP_6: return '6';
+        case XK_KP_7: return '7';
+        case XK_KP_8: return '8';
+        case XK_KP_9: return '9';
+        case XK_exclam: return '!';
+        case XK_at: return '@';
+        case XK_numbersign: return '#';
+        case XK_dollar: return '$';
+        case XK_percent: return '%';
+        case XK_asciicircum: return '^';
+        case XK_ampersand: return '&';
+        case XK_asterisk: return '*';
+        case XK_parenleft: return '(';
+        case XK_parenright: return ')';
+        case XK_minus: return '-';
+        case XK_underscore: return '_';
+        case XK_equal: return '=';
+        case XK_plus: return '+';
+		case XK_period : return '.';
+        case XK_BackSpace: return '\b';
+        case XK_Tab: return '\t';
+        case XK_Linefeed: return '\n';
+        case XK_Return: return '\r';
+        case XK_space: return ' ';
+        case XK_a: return 'a';
+        case XK_b: return 'b';
+        case XK_c: return 'c';
+        case XK_d: return 'd';
+        case XK_e: return 'e';
+        case XK_f: return 'f';
+        case XK_g: return 'g';
+        case XK_h: return 'h';
+        case XK_i: return 'i';
+        case XK_j: return 'j';
+        case XK_k: return 'k';
+        case XK_l: return 'l';
+        case XK_m: return 'm';
+        case XK_n: return 'n';
+        case XK_o: return 'o';
+        case XK_p: return 'p';
+        case XK_q: return 'q';
+        case XK_r: return 'r';
+        case XK_s: return 's';
+        case XK_t: return 't';
+        case XK_u: return 'u';
+        case XK_v: return 'v';
+        case XK_w: return 'w';
+        case XK_x: return 'x';
+        case XK_y: return 'y';
+        case XK_z: return 'z';
+        case XK_A: return 'A';
+        case XK_B: return 'B';
+        case XK_C: return 'C';
+        case XK_D: return 'D';
+        case XK_E: return 'E';
+        case XK_F: return 'F';
+        case XK_G: return 'G';
+        case XK_H: return 'H';
+        case XK_I: return 'I';
+        case XK_J: return 'J';
+        case XK_K: return 'K';
+        case XK_L: return 'L';
+        case XK_M: return 'M';
+        case XK_N: return 'N';
+        case XK_O: return 'O';
+        case XK_P: return 'P';
+        case XK_Q: return 'Q';
+        case XK_R: return 'R';
+        case XK_S: return 'S';
+        case XK_T: return 'T';
+        case XK_U: return 'U';
+        case XK_V: return 'V';
+        case XK_W: return 'W';
+        case XK_X: return 'X';
+        case XK_Y: return 'Y';
+        case XK_Z: return 'Z';
+        // Add more special characters if needed
+        default: return '?'; // Unknown keysym
+    }
+}
+
+
+
+// 判断传入的字符是否是已经分配的标签字符
+int is_in_flash_used_label(unsigned int keysym) {
+	int i;
+	char label = keysym_to_char(keysym);
+	for ( i = 0; i < flash_used_label.used; i++) {
+		if (label == flash_used_label.array[i]) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+// 判断传入的字符是否是已经分配的标签字符
+int is_in_flash_next_char_record(unsigned int keysym) {
+	int i;
+	char label = keysym_to_char(keysym);
+	for ( i = 0; i < flash_next_char_record.used; i++) {
+		if (label == flash_next_char_record.array[i]) {
+			return 1;
+		}
+	}
+	return 0;
+}
 
 void
 kbds_drawstatusbar(int y)
 {
 	static char *modes[] = { " MOVE ", "", " SELECT ", " RSELECT ", " LSELECT ",
-	                         " SEARCH FW ", " SEARCH BW ", " FIND FW ", " FIND BW " };
+	                         " SEARCH FW ", " SEARCH BW ", " FIND FW ", " FIND BW ", " FLASH " };
 	static char quant[20] = { ' ' };
 	static Glyph g;
 	int i, n, m;
@@ -58,7 +270,9 @@ kbds_drawstatusbar(int y)
 
 	/* draw the mode */
 	if (y == 0) {
-		if (kbds_issearchmode())
+		if (kbds_isflashmode())
+			m = 9;
+		else if (kbds_issearchmode())
 			m = 5 + (kbds_searchobj.dir < 0 ? 1 : 0);
 		else if (kbds_mode & KBDS_MODE_FIND)
 			m = 7 + (kbds_finddir < 0 ? 1 : 0);
@@ -66,6 +280,7 @@ kbds_drawstatusbar(int y)
 			m = 2 + (kbds_seltype == SEL_RECTANGULAR ? 1 : 0);
 		else
 			m = kbds_mode;
+
 		mlen = strlen(modes[m]);
 		qlen = kbds_quant ? snprintf(quant+1, sizeof quant-1, "%i", kbds_quant) + 1 : 0;
 		/* do not draw the mode if the cursor is behind it. */
@@ -82,7 +297,7 @@ kbds_drawstatusbar(int y)
 	}
 
 	/* draw the search bar */
-	if (y == term.row-1 && kbds_issearchmode()) {
+	if (y == term.row-1 && (kbds_issearchmode() || kbds_isflashmode())) {
 		/* search bar */
 		for (g.u = ' ', i = 0; i < term.col; i++)
 			xdrawglyph(g, i, y);
@@ -194,7 +409,6 @@ kbds_pasteintosearch(const char *data, int len, int append)
 	}
 	term.dirty[term.row-1] = 1;
 }
-
 int
 kbds_top(void)
 {
@@ -223,6 +437,12 @@ int
 kbds_issearchmode(void)
 {
 	return kbds_in_use && (kbds_mode & KBDS_MODE_SEARCH);
+}
+
+int
+kbds_isflashmode(void)
+{
+	return kbds_in_use && (kbds_mode & KBDS_MODE_FLASH);
 }
 
 void
@@ -265,8 +485,13 @@ kbds_clearhighlights(void)
 
 	for (y = (IS_SET(MODE_ALTSCREEN) ? 0 : -term.histf); y < term.row; y++) {
 		line = TLINEABS(y);
-		for (x = 0; x < term.col; x++)
+		for (x = 0; x < term.col; x++) {
 			line[x].mode &= ~ATTR_HIGHLIGHT;
+			if (line[x].mode & ATTR_FLASH_LABEL) {
+				line[x].mode &= ~ATTR_FLASH_LABEL; // 清除flash标签高亮
+				line[x].u = line[x].ubk;            // 恢复被flash标签占用的原来的字符
+			}
+		}
 	}
 	tfulldirt();
 }
@@ -374,56 +599,129 @@ found:
 	}
 }
 
-int
-kbds_ismatch(KCursor c)
+
+// kbds_ismatch 函数用于检查指定位置是否与搜索字符串匹配。
+// 如果匹配，则高亮显示匹配的文本，并返回1；否则返回0。
+int kbds_ismatch(KCursor c)
 {
+	// 定义一个光标结构体变量 m，用于高亮显示匹配的文本
 	KCursor m = c;
+	// 定义循环变量
 	int i, next;
 
+	// 检查当前光标位置加上搜索字符串长度是否超出当前行长度
+	// 如果超出且不允许换行或者光标已到达文本区域底部，则返回0
 	if (c.x + kbds_searchobj.len > c.len && (!kbds_iswrapped(&c) || c.y >= kbds_bot()))
 		return 0;
 
+	// 如果开启了单词匹配模式，且当前光标位置前一个字符不是分隔符，则返回0
 	if (kbds_searchobj.wordonly && !kbds_isdelim(c, -1, kbds_sdelim))
 		return 0;
 
+	// 遍历搜索字符串的每一个字符
 	for (next = 0, i = 0; i < kbds_searchobj.len; i++) {
+		// 如果当前字符是ATTR_WDUMMY，则跳过
 		if (kbds_searchobj.str[i].mode & ATTR_WDUMMY)
 			continue;
+		// 移动光标到下一个位置，如果移动失败或者字符不匹配，则返回0
 		if ((next++ && !kbds_moveforward(&c, 1, KBDS_WRAP_LINE)) ||
 		    (!kbds_searchobj.ignorecase && kbds_searchobj.str[i].u != c.line[c.x].u) ||
 		    (kbds_searchobj.ignorecase && kbds_searchobj.str[i].u != towlower(c.line[c.x].u)))
 			return 0;
 	}
 
+	// 如果开启了单词匹配模式，且当前光标位置后一个字符不是分隔符，则返回0
 	if (kbds_searchobj.wordonly && !kbds_isdelim(c, 1, kbds_sdelim))
 		return 0;
 
+	// 高亮显示匹配的文本
 	for (i = 0; i < kbds_searchobj.len; i++) {
+		// 如果当前字符不是ATTR_WDUMMY，则设置高亮属性并移动光标
 		if (!(kbds_searchobj.str[i].mode & ATTR_WDUMMY)) {
 			m.line[m.x].mode |= ATTR_HIGHLIGHT;
 			kbds_moveforward(&m, 1, KBDS_WRAP_LINE);
 		}
 	}
+	if (kbds_isflashmode()) {
+		// 备份匹配字符串的下一个字符，因为后面会被标签字符替换，会在清除高亮代码中恢复
+		m.line[m.x].ubk = m.line[m.x].u;
+		// 记录匹配字符串的下一个字符
+		insert_char_array(&flash_next_char_record, m.line[m.x].u);
+		// 记录所有匹配字符串的下一个字符的光标指针地址
+		insert_kcursor_array(&flash_kcursor_record, m);
+	}
+	// 返回1，表示找到匹配项
 	return 1;
 }
 
-int
-kbds_searchall(void)
+// kbds_searchall 函数用于在整个文本区域中搜索指定的字符串，并高亮显示匹配的文本。
+// 该函数返回找到的匹配项数量。
+int kbds_searchall(void)
 {
-	KCursor c;
-	int count = 0;
 
+	// 定义一个光标结构体变量 c，用于遍历文本区域
+	KCursor c;
+	// 定义计数器，用于记录匹配项的数量
+	int count = 0;
+	int i,j;
+	int is_invalid_label;
+	CharArray valid_label;
+
+	// 初始化动态数组
+    init_char_array(&flash_next_char_record, 1);
+	init_char_array(&valid_label, 1);
+	init_char_array(&flash_used_label, 1);
+	init_kcursor_array(&flash_kcursor_record, 1);
+
+	// 如果搜索字符串长度为0，则直接返回0，表示没有找到匹配项
 	if (!kbds_searchobj.len)
 		return 0;
 
-	for (c.y = kbds_top(); c.y <= kbds_bot(); c.y++) {
+	// flash模式只是搜索当前可视区域
+	int begin = kbds_isflashmode() ? 0 : kbds_top();
+	int end = kbds_isflashmode() ? term.row - 1 : kbds_bot();
+	// 遍历文本区域的每一行
+	for (c.y = begin; c.y <= end; c.y++) {
+		// 获取当前行的指针
 		c.line = TLINE(c.y);
+		// 获取当前行的长度
 		c.len = tlinelen(c.line);
+		// 遍历当前行的每一个字符
 		for (c.x = 0; c.x < c.len; c.x++)
+			// 调用 kbds_ismatch 函数检查当前位置是否匹配，并累加匹配项数量
 			count += kbds_ismatch(c);
 	}
-	tfulldirt();
 
+	// 从标签数组中排除匹配所有匹配字符串的下一个字符，剩下的标签重新生成当前的可用标签数组valid_label
+    for ( i = 0; i < 52; i++) {
+		is_invalid_label = 0;
+		for ( j = 0; j < flash_next_char_record.used; j++) {
+			if (flash_next_char_record.array[j] == *flash_key_label[i]) {
+				is_invalid_label = 1;
+				break;
+			}
+		}
+		if (is_invalid_label == 0) {
+			insert_char_array(&valid_label, *flash_key_label[i]);
+		}
+    }
+
+	// 将可用的标签分配给所有匹配字符串的label位置，然后记录使用了那些标签
+	for ( i = 0; i < flash_kcursor_record.used; i++) {
+		if (i < valid_label.used) {
+					// 给匹配字符串的下一个字符设置flash高亮标签
+			flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].mode |= ATTR_FLASH_LABEL;
+			insert_char_array(&flash_used_label, valid_label.array[i]);
+			flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].u = valid_label.array[i];
+		}
+	}
+
+    // 重置数组
+	reset_char_array(&valid_label);
+
+	// 标记整个文本区域需要重绘
+	tfulldirt();
+	// 返回找到的匹配项数量
 	return count;
 }
 
@@ -601,6 +899,22 @@ kbds_getcursor(int *cx, int *cy)
 	return 0;
 }
 
+void jump_to_label(unsigned int keysym, int len) {
+	int i;
+	char label = keysym_to_char(keysym);
+	for ( i = 0; i < flash_kcursor_record.used; i++) {
+		if (label == flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].u) {
+			kbds_moveto(flash_kcursor_record.array[i].x-len, flash_kcursor_record.array[i].y);
+		}
+	}
+}
+
+void clear_flash_cache() {
+	reset_char_array(&flash_next_char_record);
+	reset_char_array(&flash_used_label);
+	reset_kcursor_array(&flash_kcursor_record);
+}
+
 int
 kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 {
@@ -608,6 +922,72 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 	int alt = IS_SET(MODE_ALTSCREEN);
 	Line line;
 	Rune u;
+
+	// flash 模式下的按键捕获
+	if (kbds_isflashmode() && !forcequit) {
+		switch (ksym) {
+		case XK_Escape:
+			kbds_searchobj.len = 0;
+			kbds_setmode(kbds_mode & ~KBDS_MODE_FLASH);
+			clear_flash_cache();
+			break;
+		// 下面三个合起来是删除输入框中的输入字符逻辑
+		case XK_BackSpace:
+			if (kbds_searchobj.cx == 0)
+				break;
+		case XK_Left:
+		case XK_KP_Left:
+			kbds_clearhighlights();
+			kbds_searchobj.cx = MAX(kbds_searchobj.cx-1, 0);
+			if (kbds_searchobj.str[kbds_searchobj.cx].mode & ATTR_WDUMMY)
+				kbds_searchobj.cx = MAX(kbds_searchobj.cx-1, 0);
+			if (ksym == XK_BackSpace)
+				kbds_deletechar();
+
+			for (kbds_searchobj.ignorecase = 1, i = 0; i < kbds_searchobj.len; i++) {
+				if (kbds_searchobj.str[i].u != towlower(kbds_searchobj.str[i].u)) {
+					kbds_searchobj.ignorecase = 0;
+					break;
+				}
+			}
+			kbds_searchobj.wordonly = 0;
+			count = kbds_searchall();
+			return 0;
+		default:
+			// 捕获匹配的字符串输入
+			if (len > 0) {
+				// 如果输入的是标签字符，则跳转到标签字符对应的位置，并退出到move模式
+				if (is_in_flash_used_label(ksym) == 1) {
+					jump_to_label(ksym,kbds_searchobj.len);
+					kbds_searchobj.len = 0;
+					kbds_setmode(kbds_mode & ~KBDS_MODE_FLASH);
+					clear_flash_cache();
+					kbds_clearhighlights();
+					return 0;
+					break;
+				} else if(ksym,kbds_searchobj.len > 0 && is_in_flash_next_char_record(ksym) == 0) {
+					return 0;
+				} else {
+					clear_flash_cache();
+				}
+				// 持续输入，持续匹配
+				kbds_clearhighlights();
+				utf8decode(buf, &u, len);
+				kbds_insertchar(u);
+				/* smart case */
+				for (kbds_searchobj.ignorecase = 1, i = 0; i < kbds_searchobj.len; i++) {
+					if (kbds_searchobj.str[i].u != towlower(kbds_searchobj.str[i].u)) {
+						kbds_searchobj.ignorecase = 0;
+						break;
+					}
+				}
+				kbds_searchobj.wordonly = 0;
+				count = kbds_searchall();
+				return 0;				
+			}
+			break;
+		}
+	}
 
 	if (kbds_issearchmode() && !forcequit) {
 		switch (ksym) {
@@ -729,12 +1109,20 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			kbds_setmode(kbds_mode | KBDS_MODE_SELECT);
 		}
 		break;
-	case XK_s:
+	case XK_S:
 		if (!(kbds_mode & KBDS_MODE_LSELECT)) {
 			kbds_seltype ^= (SEL_REGULAR | SEL_RECTANGULAR);
 			selextend(kbds_c.x, kbds_c.y, kbds_seltype, 0);
 		}
 		break;
+	case XK_s:
+		kbds_searchobj.directsearch = (ksym == -2 || ksym == -3);
+		kbds_searchobj.dir = (ksym == XK_question || ksym == -3) ? -1 : 1;
+		kbds_searchobj.cx = kbds_searchobj.len = 0;
+		kbds_searchobj.maxlen = term.col - 2;
+		kbds_setmode(kbds_mode | KBDS_MODE_FLASH);
+		kbds_clearhighlights();
+		return 0;
 	case XK_o:
 	case XK_O:
 		ox = sel.ob.x; oy = sel.ob.y;
@@ -752,7 +1140,6 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			kbds_moveto(kbds_c.x, oy);
 		}
 		break;
-	case XK_y:
 	case XK_Y:
 		if (kbds_isselectmode()) {
 			kbds_copytoclipboard();
@@ -772,6 +1159,14 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kbds_setmode(kbds_mode | KBDS_MODE_SEARCH);
 		kbds_clearhighlights();
 		return 0;
+	case -4:
+		kbds_searchobj.directsearch = (ksym == -2 || ksym == -3);
+		kbds_searchobj.dir = (ksym == XK_question || ksym == -3) ? -1 : 1;
+		kbds_searchobj.cx = kbds_searchobj.len = 0;
+		kbds_searchobj.maxlen = term.col - 2;
+		kbds_setmode(kbds_mode | KBDS_MODE_FLASH);
+		kbds_clearhighlights();
+		return 0;
 	case XK_q:
 	case XK_Escape:
 		if (!kbds_in_use)
@@ -787,6 +1182,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		}
 		kbds_setmode(KBDS_MODE_MOVE);
 		/* FALLTHROUGH */
+	case XK_y:
 	case XK_Return:
 		if (kbds_isselectmode())
 			kbds_copytoclipboard();

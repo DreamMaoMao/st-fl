@@ -13,7 +13,7 @@ config.h:
 	cp config.def.h config.h
 
 .c.o:
-	$(CC) $(STCFLAGS) -c $<
+	$(CC) $(STCFLAGS) -g -c $<
 
 st.o: config.h st.h win.h
 x.o: arg.h config.h st.h win.h $(LIGATURES_H)
@@ -21,7 +21,7 @@ x.o: arg.h config.h st.h win.h $(LIGATURES_H)
 $(OBJ): config.h config.mk
 
 st: $(OBJ)
-	$(CC) -o $@ $(OBJ) $(STLDFLAGS)
+	$(CC) -o $@ $(OBJ) $(STLDFLAGS) -g
 
 clean:
 	rm -f st $(OBJ) st-$(VERSION).tar.gz

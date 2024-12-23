@@ -92,7 +92,7 @@ static unsigned int su_timeout = 200;
  * attribute.
  */
 static unsigned int autoscrolltimeout = 200;
-static float autoscrollacceleration = 0.2;
+static float autoscrollacceleration = 1;
 
 
 /*
@@ -163,7 +163,7 @@ float alphaUnfocused = 0.7;
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
-	"#262626",
+	"#0f0d0a",
 	"#cc0000",
 	"#42B63F",
 	"#DD9400",
@@ -173,7 +173,7 @@ static const char *colorname[] = {
 	"#D1B88E",
 
 	/* 8 bright colors */
-	"#a79e67",
+	"#989490",
 	"#ef2929",
 	"#8ae234",
 	"#ead96b",
@@ -203,9 +203,19 @@ static unsigned int defaultrcs = 257;
 unsigned int bg = 259;
 unsigned int bgUnfocused = 260;
 
+/* This fg/bg index is used to match the */
+/* color array elements below */
+
 /* Foreground and background color of search results */
-unsigned int highlightfg = 15;
-unsigned int highlightbg = 160;
+unsigned int highlightfg = 0;
+unsigned int highlightbg = 3;
+
+/* Foreground and background color of flash label */
+unsigned int flashlabelfg = 15;
+unsigned int flashlabelbg = 9;
+unsigned int flashtextfg = 8;
+unsigned int flashtextbg = 0;
+
 
 /* Bold text is not rendered in bright color. 0: off, 1: on */
 unsigned int bold_is_not_bright = 1;
@@ -314,6 +324,7 @@ static Shortcut shortcuts[] = {
 	{ TERMMOD,              XK_space,       keyboard_select, { 0 } },
 	{ TERMMOD,              XK_F,           searchforward,   { 0 } },
 	{ TERMMOD,              XK_B,           searchbackward,  { 0 } },
+	{ ControlMask,              XK_i,       keyboard_flash,  { 0 } },
 	{ TERMMOD,              XK_Z,           scrolltoprompt,  {.i = -1}, S_PRI },
 	{ TERMMOD,              XK_X,           scrolltoprompt,  {.i =  1}, S_PRI },
 	{ XK_NO_MOD,            XK_F11,         fullscreen,      {.i =  0} },

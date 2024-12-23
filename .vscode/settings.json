@@ -18,6 +18,8 @@
         "forward_list": "c",
         "list": "c",
         "vector": "c",
-        "valarray": "c"
+        "valarray": "c",
+        "cstdint": "cpp",
+        "source_location": "cpp"
     }
 }
