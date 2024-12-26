@@ -20,6 +20,7 @@
         "vector": "c",
         "valarray": "c",
         "cstdint": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "gd.h": "c"
     }
 }

@@ -173,7 +173,7 @@ static const char *colorname[] = {
 	"#D1B88E",
 
 	/* 8 bright colors */
-	"#989490",
+	"#a99b8d",
 	"#ef2929",
 	"#8ae234",
 	"#ead96b",
@@ -215,6 +215,10 @@ unsigned int flashlabelfg = 15;
 unsigned int flashlabelbg = 9;
 unsigned int flashtextfg = 8;
 unsigned int flashtextbg = 0;
+
+/* when in flash mode, eliminate the color of fonts
+/* exclude highlighted labels*/
+unsigned int flash_eliminate_extra_color = 1;
 
 
 /* Bold text is not rendered in bright color. 0: off, 1: on */

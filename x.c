@@ -1846,7 +1846,7 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 		bg = &dc.col[(base.mode & ATTR_REVERSE) ? flashlabelfg : flashlabelbg];
 	}
 
-	if (!(base.mode & (ATTR_HIGHLIGHT | ATTR_REVERSE | ATTR_WDUMMY | ATTR_FLASH_LABEL)) && kbds_isflashmode()) {
+	if (flash_eliminate_extra_color && !(base.mode & (ATTR_HIGHLIGHT | ATTR_REVERSE | ATTR_WDUMMY | ATTR_FLASH_LABEL)) && kbds_isflashmode()) {
 		fg = &dc.col[flashtextfg];
 		if (base.bg != defaultbg)
 			bg = &dc.col[flashtextbg];
