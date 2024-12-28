@@ -1088,7 +1088,6 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			kbds_moveto(kbds_c.x, oy);
 		}
 		break;
-	case XK_y:
 	case XK_Y:
 		if (kbds_isselectmode()) {
 			kbds_copytoclipboard();
@@ -1131,6 +1130,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		}
 		kbds_setmode(KBDS_MODE_MOVE);
 		/* FALLTHROUGH */
+	case XK_y:
 	case XK_Return:
 		if (kbds_isselectmode())
 			kbds_copytoclipboard();
@@ -1179,20 +1179,19 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		break;
 	case XK_Home:
 	case XK_KP_Home:
-	case XK_H:
+	case XK_B:
 		kbds_moveto(kbds_c.x, 0);
 		break;
 	case XK_M:
 		kbds_moveto(kbds_c.x, alt ? (term.row-1) / 2
                                   : MIN(term.c.y + term.scr, term.row-1) / 2);
 		break;
-	case XK_L:
+	case XK_E:
 		kbds_moveto(kbds_c.x, alt ? term.row-1
 		                          : MIN(term.c.y + term.scr, term.row-1));
 		break;
 	case XK_Page_Up:
 	case XK_KP_Page_Up:
-	case XK_K:
 		prevscr = term.scr;
 		kscrollup(&((Arg){ .i = term.row }));
 		kbds_moveto(kbds_c.x, alt ? 0
@@ -1200,7 +1199,8 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		break;
 	case XK_Page_Down:
 	case XK_KP_Page_Down:
-	case XK_J:
+	case XK_d:
+	case XK_D:
 		prevscr = term.scr;
 		kscrolldown(&((Arg){ .i = term.row }));
 		kbds_moveto(kbds_c.x, alt ? term.row-1
@@ -1215,17 +1215,17 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kscrolldown(&((Arg){ .i = term.histf }));
 		kbds_moveto(kbds_c.x, alt ? term.row-1 : term.c.y);
 		break;
+	case XK_H:
 	case XK_b:
-	case XK_B:
-		kbds_nextword(1, -1, (ksym == XK_b) ? kbds_sdelim : kbds_ldelim);
+		kbds_nextword(1, -1, (ksym == XK_H) ? kbds_sdelim : kbds_ldelim);
 		break;
 	case XK_w:
 	case XK_W:
 		kbds_nextword(1, +1, (ksym == XK_w) ? kbds_sdelim : kbds_ldelim);
 		break;
+	case XK_L:
 	case XK_e:
-	case XK_E:
-		kbds_nextword(0, +1, (ksym == XK_e) ? kbds_sdelim : kbds_ldelim);
+		kbds_nextword(0, +1, (ksym == XK_L) ? kbds_sdelim : kbds_ldelim);
 		break;
 	case XK_z:
 		prevscr = term.scr;
