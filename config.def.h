@@ -5,12 +5,13 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
+static char *font = "Maple Mono NF CN:style=Medium:pixelsize=27:antialias=true:autohint=true";
 /* Spare fonts */
 static char *font2[] = {
-/*	"Inconsolata for Powerline:pixelsize=12:antialias=true:autohint=true", */
+	"Source Han Sans CN:pixelsize=27:style=Bold:antialias=true:autohint=true",
 /*	"Hack Nerd Font Mono:pixelsize=11:antialias=true:autohint=true", */
 };
+
 
 /* Disable bold and italic fonts globally */
 unsigned int disable_bold = 0;
@@ -197,41 +198,42 @@ char *termname = "st-256color";
 unsigned int tabspaces = 8;
 
 /* bg opacity */
-float alpha = 0.93;
-float alphaUnfocused = 0.6;
+float alpha = 0.7;
+float alphaUnfocused = 0.7;
 
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
-	"black",
-	"red3",
-	"green3",
-	"yellow3",
-	"blue2",
-	"magenta3",
-	"cyan3",
-	"gray90",
+	"#0f0d0a",
+	"#cc0000",
+	"#42B63F",
+	"#DD9400",
+	"#DD9400",
+	"#bf78cf",
+	"#74cd45",
+	"#D1B88E",
 
 	/* 8 bright colors */
-	"gray50",
-	"red",
-	"green",
-	"yellow",
-	"#5c5cff",
-	"magenta",
-	"cyan",
-	"white",
+	"#a99b8d",
+	"#ef2929",
+	"#8ae234",
+	"#ead96b",
+	"#729fcf",
+	"#ad7fa8",
+	"#ead96b",
+	"#eeeeec",
 
 	[255] = 0,
 
 	/* more colors can be added after 255 to use with DefaultXX */
-	"#cccccc", /* 256 -> cursor */
-	"#555555", /* 257 -> rev cursor */
-	"gray90",  /* 258 -> foreground */
-	"black",   /* 259 -> background */
-	"black",   /* 260 -> background unfocused */
-	"gray90",  /* 261 -> visual bell */
+	"#dad9d9", /* 256 -> cursor */
+	"#323232", /* 257 -> rev cursor */
+	"#d0b78d",  /* 258 -> foreground */
+	"#000000",   /* 259 -> background */
+	"#000000",   /* 260 -> background unfocused */
+	"#555555",  /* 261 -> visual bell */
 };
+
 
 /*
  * Default colors (colorname index)
@@ -246,14 +248,15 @@ unsigned int bgUnfocused = 260;
 unsigned int visualbellcolor = 261;
 
 /* Foreground and background color of search results */
-unsigned int highlightfg = 15;
-unsigned int highlightbg = 160;
+unsigned int highlightfg = 0;
+unsigned int highlightbg = 3;
 
 /* Foreground and background color of flash label */
 unsigned int flashlabelfg = 15;
-unsigned int flashlabelbg = 4;
+unsigned int flashlabelbg = 9;
 unsigned int flashtextfg = 8;
 unsigned int flashtextbg = 0;
+
 
 /* Foreground and background color of the hyperlink hint */
 unsigned int hyperlinkhintfg = 0;
@@ -390,7 +393,7 @@ static Shortcut shortcuts[] = {
 	{ TERMMOD,              XK_space,       keyboard_select, { 0 } },
 	{ TERMMOD,              XK_F,           searchforward,   { 0 } },
 	{ TERMMOD,              XK_B,           searchbackward,  { 0 } },
-	{ TERMMOD,              XK_I,           keyboard_flash,  { 0 } },
+	{ ControlMask,          XK_i,           keyboard_flash,  { 0 } },
 	{ TERMMOD,              XK_Z,           scrolltoprompt,  {.i = -1}, S_PRI },
 	{ TERMMOD,              XK_X,           scrolltoprompt,  {.i =  1}, S_PRI },
 	{ XK_NO_MOD,            XK_F11,         fullscreen,      {.i =  0} },
