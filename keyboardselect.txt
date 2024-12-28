@@ -1,7 +1,8 @@
 Shortcuts in keyboard selection mode:
 
 h, j, k, l:              move cursor left/down/up/right (also with arrow keys)
-H, M, L:                 move cursor to the top/middle/bottom of the screen
+J,K:                     move cursor down*5/up*5
+(b), (M), (E):     move cursor to the top/middle/bottom of the screen
 Home, End:               move cursor to the top/bottom of the screen
 Backspace or 0, $ or A:  move cursor to the beginning/end of the line
 ^ or I:                  move cursor to the beginning of the indented line
@@ -10,11 +11,13 @@ _:                       move cursor to the right edge of the screen
 o:                       move cursor to the beginning or end of the selection
 O:                       move cursor to the opposite corner of the rectangular selection
 w, W                     jump forward to the start of a word
-e, E                     jump forward to the end of a word
-b, B                     jump backward to the start of a word
+e                        jump forward to the end of a word (long match)
+b                        jump backward to the start of a word (long match)
+L                        jump forward to the end of a word
+H                        jump backward to the start of a word
 g, G:                    go to the first/last line
 z:                       center the screen on the cursor
-PgUp or K, PgDown or J:  scroll the page up/down
+(PgUp,u,U), (PgDown,d,D):scroll the page up/down
 /, ?:                    activate input mode and search forward/backward
 n, N:                    repeat last search and search forward/backward
 *, #:                    search forward/backward for the word or selection under the cursor
@@ -25,11 +28,11 @@ t, T:                    jump forward/backward to before the given character
 v:                       toggle selection mode
 V:                       toggle line selection mode
 S:                       toggle regular/rectangular selection type
-s:                       jump to flash mode
-y:                       yank (copy) selected text
+s:                       from move mode switch to flash mode
 Z, X:                    jump to previous/next shell prompt that contains the OSC "133;A" sequence
+0 - 9:                   set the quantifier
 u:                       open hyperlink under the cursor
 U:                       copy hyperlink under the cursor to the clipboard
-0 - 9:                   set the quantifier
-Return:                  quit keyboard_select, yank and keep the highlight of the selection
+Y:                       yank (copy) selected text
+y,Return:                  quit keyboard_select, yank and keep the highlight of the selection
 Escape, q:               quit keyboard_select/exit input mode/exit selection mode/reset quantifier
