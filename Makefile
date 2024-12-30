@@ -38,8 +38,6 @@ dist: clean
 	rm -rf st-$(VERSION)
 
 install: st
-	mkdir -p ~/.config/st
-	test -f ~/.config/st/init.lua || cp -n init.lua ~/.config/st
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp -f st $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/st

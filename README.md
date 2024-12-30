@@ -72,6 +72,8 @@ Edit `config.h` and add your favorite fonts, colors, etc. and install:
 
 ```
 sudo make clean install
+mkdir -p ~/.config/st
+test -f ~/.config/st/init.lua || cp init.lua ~/.config/st/
 ```
 
 The executable name is `st`.
