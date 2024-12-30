@@ -1,4 +1,9 @@
 #include <wctype.h>
+#include <string.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include <unistd.h>
 
 enum keyboardselect_mode {
 	KBDS_MODE_MOVE    = 0,
@@ -62,6 +67,116 @@ static const char *flash_key_label[52] = {
 	"G", "Q", "R", "T", "U", "V", "W", "X", "Z", "C",
 	"K", "M", "N", "O", "P", "S"
 };
+
+lua_State *L;
+
+// Helper function to convert a Unicode code point to a UTF-8 string
+static int unicode_to_utf8(unsigned int codepoint, char *buffer, size_t bufsize) {
+    if (codepoint <= 0x7F) {
+        // 1-byte sequence
+        if (bufsize < 2) return 0;
+        buffer[0] = (char)codepoint;
+        buffer[1] = '\0';
+        return 1;
+    } else if (codepoint <= 0x7FF) {
+        // 2-byte sequence
+        if (bufsize < 3) return 0;
+        buffer[0] = 0xC0 | (char)((codepoint >> 6) & 0x1F);
+        buffer[1] = 0x80 | (char)(codepoint & 0x3F);
+        buffer[2] = '\0';
+        return 2;
+    } else if (codepoint <= 0xFFFF) {
+        // 3-byte sequence
+        if (bufsize < 4) return 0;
+        buffer[0] = 0xE0 | (char)((codepoint >> 12) & 0x0F);
+        buffer[1] = 0x80 | (char)((codepoint >> 6) & 0x3F);
+        buffer[2] = 0x80 | (char)(codepoint & 0x3F);
+        buffer[3] = '\0';
+        return 3;
+    } else if (codepoint <= 0x10FFFF) {
+        // 4-byte sequence
+        if (bufsize < 5) return 0;
+        buffer[0] = 0xF0 | (char)((codepoint >> 18) & 0x07);
+        buffer[1] = 0x80 | (char)((codepoint >> 12) & 0x3F);
+        buffer[2] = 0x80 | (char)((codepoint >> 6) & 0x3F);
+        buffer[3] = 0x80 | (char)(codepoint & 0x3F);
+        buffer[4] = '\0';
+        return 4;
+    }
+    // Invalid Unicode code point
+    return 0;
+}
+
+
+void load_lua_init() {
+    char *home_dir = getenv("HOME");
+    if (home_dir == NULL) {
+		L = NULL;
+        fprintf(stderr, "Failed to get home directory\n");
+    }
+
+    char lua_script_path[1024];
+    snprintf(lua_script_path, sizeof(lua_script_path), "%s/.config/st/init.lua", home_dir);
+
+    L = luaL_newstate();
+    luaL_openlibs(L);
+
+    // 加载Lua脚本
+    if (luaL_dofile(L, lua_script_path)) {
+        fprintf(stderr, "Cannot run Lua script: %s\n", lua_tostring(L, -1));
+        lua_close(L);
+		L = NULL;
+    }	
+}
+
+char* 
+lua_zh_to_char(Rune u) {
+	if (L == NULL)
+		return NULL;
+
+    // 确保Lua脚本中定义了get_initial函数
+    lua_getglobal(L, "zh_to_char");
+    if (!lua_isfunction(L, -1)) {
+        fprintf(stderr, "Function 'get_initial' is not defined in the Lua script\n");
+        lua_close(L);
+        return NULL;
+    }
+
+    // 将参数推送到Lua栈上
+    char utf8_char[5]; // UTF-8编码的字符最多占用4字节，加上终止符'\0'
+    if (unicode_to_utf8(u, utf8_char, sizeof(utf8_char)) == 0) {
+        fprintf(stderr, "Failed to convert Unicode code point to UTF-8\n");
+        lua_close(L);
+        return NULL;
+    }
+
+    lua_pushstring(L, utf8_char);
+
+    // 调用Lua函数
+    if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
+        fprintf(stderr, "Error running function 'get_initial': %s\n", lua_tostring(L, -1));
+        lua_close(L);
+        return NULL;
+    }
+
+    // 获取返回值
+    if (!lua_isstring(L, -1)) {
+        fprintf(stderr, "Function 'get_initial' did not return a string\n");
+        lua_close(L);
+        return NULL;
+    }
+
+    const char *initial = lua_tostring(L, -1);
+    char *result = strdup(initial); // 复制字符串
+	if (*result == '?')
+		return NULL;
+    return result;	
+}
+
+void close_init_lua() {
+	if (L)
+    	lua_close(L);
+}
 
 void
 init_char_array(CharArray *a, size_t initialSize) {
@@ -589,7 +704,9 @@ int
 kbds_ismatch(KCursor c)
 {
 	KCursor m = c;
-	int i, next;
+	int i,is_exists_next = 1;
+	char *zh;
+	Rune u;
 
 	if (c.x + kbds_searchobj.len > c.len && (!kbds_iswrapped(&c) || c.y >= kbds_bot()))
 		return 0;
@@ -597,13 +714,21 @@ kbds_ismatch(KCursor c)
 	if (kbds_searchobj.wordonly && !kbds_isdelim(c, -1, kbds_sdelim))
 		return 0;
 
-	for (next = 0, i = 0; i < kbds_searchobj.len; i++) {
+	for (i = 0; i < kbds_searchobj.len; i++) {
 		if (kbds_searchobj.str[i].mode & ATTR_WDUMMY)
 			continue;
-		if ((next++ && !kbds_moveforward(&c, 1, KBDS_WRAP_LINE)) ||
-		    (!kbds_searchobj.ignorecase && kbds_searchobj.str[i].u != c.line[c.x].u) ||
-		    (kbds_searchobj.ignorecase && kbds_searchobj.str[i].u != towlower(c.line[c.x].u)))
+		
+		zh = lua_zh_to_char(c.line[c.x].u);
+
+		if (
+			(!zh && !kbds_searchobj.ignorecase && kbds_searchobj.str[i].u != c.line[c.x].u) ||
+			(!zh && kbds_searchobj.ignorecase && kbds_searchobj.str[i].u != towlower(c.line[c.x].u)) ||
+			(zh && kbds_isflashmode() && kbds_searchobj.str[i].u != *zh))
 			return 0;
+		if (is_exists_next == 0)
+			return 0;
+		is_exists_next = kbds_moveforward(&c, 1, KBDS_WRAP_LINE);
+
 	}
 
 	if (kbds_searchobj.wordonly && !kbds_isdelim(c, 1, kbds_sdelim))
@@ -618,7 +743,9 @@ kbds_ismatch(KCursor c)
 
 	if (kbds_isflashmode()) {
 		m.line[m.x].ubk = m.line[m.x].u;
-		insert_char_array(&flash_next_char_record, m.line[m.x].u);
+		zh = lua_zh_to_char(m.line[m.x].u);
+		u = zh? *zh : m.line[m.x].u;
+		insert_char_array(&flash_next_char_record, u);
 		insert_kcursor_array(&flash_kcursor_record, m);
 	}
 
@@ -681,11 +808,21 @@ kbds_searchall(void)
 
 void
 jump_to_label(unsigned int keysym, int len) {
-	int i;
+	int i,j;
+	int move_x = 0;
 	char label = keysym_to_char(keysym);
 	for ( i = 0; i < flash_kcursor_record.used; i++) {
 		if (label == flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].u) {
-			kbds_moveto(flash_kcursor_record.array[i].x-len, flash_kcursor_record.array[i].y);
+			for (j=1;j<=len;j++){
+				if (flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x-j].u >=  0x80)
+				 move_x = move_x + 2; //中文要移动两个字符
+				else
+				 move_x = move_x + 1;
+			}
+			if(flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].ubk > 0x80)
+			 move_x = move_x + 1; //如果标签也是中文还有多移动一次字符
+			kbds_moveto(flash_kcursor_record.array[i].x-move_x, flash_kcursor_record.array[i].y);
+			return;
 		}
 	}
 }
@@ -885,6 +1022,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			kbds_searchobj.len = 0;
 			kbds_setmode(kbds_mode & ~KBDS_MODE_FLASH);
 			clear_flash_cache();
+			close_init_lua();
 			break;
 		case XK_BackSpace:
 			if (kbds_searchobj.cx == 0)
@@ -914,6 +1052,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 					kbds_setmode(kbds_mode & ~KBDS_MODE_FLASH);
 					clear_flash_cache();
 					kbds_clearhighlights();
+					close_init_lua();
 					return 0;
 				} else if(ksym,kbds_searchobj.len > 0 && is_in_flash_next_char_record(ksym) == 0) {
 					return 0;
@@ -1070,6 +1209,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kbds_searchobj.maxlen = term.col - 2;
 		kbds_setmode(kbds_mode | KBDS_MODE_FLASH);
 		kbds_clearhighlights();
+		load_lua_init();
 		return 0;
 	case XK_o:
 	case XK_O:
@@ -1114,6 +1254,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kbds_searchobj.maxlen = term.col - 2;
 		kbds_setmode(kbds_mode | KBDS_MODE_FLASH);
 		kbds_clearhighlights();
+		load_lua_init();
 		return 0;
 	case XK_q:
 	case XK_Escape:

@@ -7,6 +7,9 @@ include config.mk
 SRC = st.c x.c $(LIGATURES_C) $(SIXEL_C)
 OBJ = $(SRC:.c=.o)
 
+STCFLAGS += -g
+STLDFLAGS += -llua
+
 all: st
 
 config.h:
@@ -35,6 +38,8 @@ dist: clean
 	rm -rf st-$(VERSION)
 
 install: st
+	mkdir -p ~/.config/st
+	test -f ~/.config/st/init.lua || cp -n init.lua ~/.config/st
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp -f st $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/st
