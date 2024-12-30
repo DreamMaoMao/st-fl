@@ -227,7 +227,7 @@ static const char *colorname[] = {
 
 	/* more colors can be added after 255 to use with DefaultXX */
 	"#dad9d9", /* 256 -> cursor */
-	"#323232", /* 257 -> rev cursor */
+	"#40771e", /* 257 -> rev cursor */
 	"#d0b78d",  /* 258 -> foreground */
 	"#000000",   /* 259 -> background */
 	"#000000",   /* 260 -> background unfocused */
@@ -355,11 +355,12 @@ static uint forcemousemod = ShiftMask;
  */
 static MouseShortcut mshortcuts[] = {
 	/* mask                 button   function        argument       release  screen */
-	{ XK_ANY_MOD,           Button2, clippaste,      {.i = 0},      1 },
-	{ ShiftMask,            Button4, kscrollup,      {.i = 1},      0, S_PRI},
-	{ ShiftMask,            Button5, kscrolldown,    {.i = 1},      0, S_PRI},
-	{ XK_NO_MOD,            Button4, kscrollup,      {.i = 1},      0, S_PRI },
-	{ XK_NO_MOD,            Button5, kscrolldown,    {.i = 1},      0, S_PRI },
+	{ XK_ANY_MOD,           Button2, selpaste,       {.i = 0},      1 },
+	{ XK_ANY_MOD,           Button3, clippaste,       {.i = 0},      0 },
+	{ XK_NO_MOD,            Button4, kscrollup,      {.i = 1}         },
+	{ XK_NO_MOD,            Button5, kscrolldown,    {.i = 1}         },
+	{ ControlMask,          Button4, kscrollup,      {.i = -1}        },
+	{ ControlMask,          Button5, kscrolldown,    {.i = -1}        },
 	{ XK_ANY_MOD,           Button4, ttysend,        {.s = "\031"}, 0, S_ALT },
 	{ XK_ANY_MOD,           Button5, ttysend,        {.s = "\005"}, 0, S_ALT },
 	{ XK_ANY_MOD,           Button3, copylinktoclipboard, {0},      1 },
