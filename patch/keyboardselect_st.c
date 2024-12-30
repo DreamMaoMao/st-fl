@@ -1027,8 +1027,6 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		case XK_BackSpace:
 			if (kbds_searchobj.cx == 0)
 				break;
-		case XK_Left:
-		case XK_KP_Left:
 			kbds_clearhighlights();
 			kbds_searchobj.cx = MAX(kbds_searchobj.cx-1, 0);
 			if (kbds_searchobj.str[kbds_searchobj.cx].mode & ATTR_WDUMMY)
@@ -1048,6 +1046,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 					kbds_setmode(kbds_mode & ~KBDS_MODE_FLASH);
 					clear_flash_cache();
 					kbds_clearhighlights();
+					kbds_selecttext();
 					close_init_lua();
 					return 0;
 				} else if(ksym,kbds_searchobj.len > 0 && is_in_flash_next_char_record(ksym) == 0) {
