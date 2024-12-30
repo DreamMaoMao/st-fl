@@ -1,6 +1,13 @@
-# st-sx - simple terminal with sixels
+# st-fl - support flash.nvim fot st-sx
 
-st-sx is a fork of suckless' [st terminal](https://st.suckless.org/) that aims to provide the best sixel support for the st users. It also includes many useful patches such as ligatures and text reflow. And it is the only st fork that supports hyperlinks (OSC 8) and [branch drawing symbols](https://github.com/kovidgoyal/kitty/pull/7681) as well!
+
+https://github.com/user-attachments/assets/521abe73-61df-4af7-b1a8-7851cbd33251
+
+
+
+simple terminal with sixels
+
+st-fl is a fork of suckless' [st terminal](https://st.suckless.org/) that aims to provide the best sixel support for the st users. It also includes many useful patches such as ligatures and text reflow. And it is the only st fork that supports hyperlinks (OSC 8) and [branch drawing symbols](https://github.com/kovidgoyal/kitty/pull/7681) as well!
 
 ## Screenshots
 
@@ -72,6 +79,8 @@ Edit `config.h` and add your favorite fonts, colors, etc. and install:
 
 ```
 sudo make clean install
+
+# if you want support flash mode in chinese
 mkdir -p ~/.config/st
 test -f ~/.config/st/init.lua || cp init.lua ~/.config/st/
 ```
