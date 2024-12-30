@@ -744,7 +744,7 @@ kbds_ismatch(KCursor c)
 	if (kbds_isflashmode()) {
 		m.line[m.x].ubk = m.line[m.x].u;
 		zh = lua_zh_to_char(m.line[m.x].u);
-		u = zh? *zh : m.line[m.x].u;
+		u = zh? *zh : towlower(m.line[m.x].u);
 		insert_char_array(&flash_next_char_record, u);
 		insert_kcursor_array(&flash_kcursor_record, m);
 	}
@@ -1035,12 +1035,8 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 				kbds_searchobj.cx = MAX(kbds_searchobj.cx-1, 0);
 			if (ksym == XK_BackSpace)
 				kbds_deletechar();
-			for (kbds_searchobj.ignorecase = 1, i = 0; i < kbds_searchobj.len; i++) {
-				if (kbds_searchobj.str[i].u != towlower(kbds_searchobj.str[i].u)) {
-					kbds_searchobj.ignorecase = 0;
-					break;
-				}
-			}
+
+			kbds_searchobj.ignorecase = 1;
 			kbds_searchobj.wordonly = 0;
 			count = kbds_searchall();
 			return 0;
