@@ -714,12 +714,11 @@ jump_to_label(Rune label, int len) {
 		if (label == flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].u) {
 			for (j=1;j<=len;j++){
 				if (flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x-j].u >=  0x80)
-				 move_x = move_x + 2; //中文要移动两个字符
+				 move_x = move_x + 3; //中文要移动三个位置
 				else
 				 move_x = move_x + 1;
 			}
-			if(flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].ubk > 0x80)
-			 move_x = move_x + 1; //如果标签也是中文还有多移动一次字符
+
 			kbds_moveto(flash_kcursor_record.array[i].x-move_x, flash_kcursor_record.array[i].y);
 			return;
 		}
