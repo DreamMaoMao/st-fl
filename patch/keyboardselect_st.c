@@ -644,7 +644,7 @@ kbds_ismatch(KCursor c)
 	if (kbds_isflashmode()) {
 		m.line[m.x].ubk = m.line[m.x].u;
 		zh = lua_zh_to_char(m.line[m.x].u);
-		u = zh? *zh : towlower(m.line[m.x].u);
+		u = zh? *zh : kbds_searchobj.ignorecase ? towlower(m.line[m.x].u) : m.line[m.x].u;
 		insert_char_array(&flash_next_char_record, u);
 		insert_kcursor_array(&flash_kcursor_record, m);
 	}
