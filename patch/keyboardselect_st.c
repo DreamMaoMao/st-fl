@@ -1321,9 +1321,17 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			return 0;
 		} else if (ksym == XK_k || ksym == XK_h)
 			i = ksym & 1;
-		else if (ksym == XK_l || ksym == XK_j)
+		else if (ksym == XK_K) {
+			i = ksym & 1;
+			kbds_quant = 5;
+			term.dirty[0] = 1;
+		} else if (ksym == XK_l || ksym == XK_j)
 			i = ((ksym & 6) | 4) >> 1;
-		else if (ksym >= XK_KP_Left && ksym <= XK_KP_Down)
+		else if (ksym == XK_J) {
+			i = ((ksym & 6) | 4) >> 1;
+			kbds_quant = 5;
+			term.dirty[0] = 1;
+		} else if (ksym >= XK_KP_Left && ksym <= XK_KP_Down)
 			i = ksym - XK_KP_Left;
 		else if ((XK_Home & ksym) != XK_Home || (i = (ksym ^ XK_Home) - 1) > 3)
 			return 0;
