@@ -938,7 +938,12 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			if (ksym == XK_BackSpace)
 				kbds_deletechar();
 
-			kbds_searchobj.ignorecase = 1;
+			for (kbds_searchobj.ignorecase = 1, i = 0; i < kbds_searchobj.len; i++) {
+				if (kbds_searchobj.str[i].u != towlower(kbds_searchobj.str[i].u)) {
+					kbds_searchobj.ignorecase = 0;
+					break;
+				}
+			}
 			kbds_searchobj.wordonly = 0;
 			count = kbds_searchall();
 			return 0;
