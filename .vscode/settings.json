@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "source_location": "c",
+        "bitset": "c",
+        "algorithm": "c",
+        "format": "c",
+        "*.ipp": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "span": "c"
+    }
+}

@@ -4,6 +4,9 @@
 #include <lauxlib.h>
 #include <lualib.h>
 #include <unistd.h>
+#include <regex.h>
+#include <string.h>
+#include <ctype.h>
 
 enum keyboardselect_mode {
 	KBDS_MODE_MOVE    = 0,
@@ -26,6 +29,12 @@ typedef struct {
 	Line line;
 	int len;
 } KCursor;
+
+typedef struct {
+	unsigned int start;
+	unsigned int len;
+	unsigned int miss;
+} RegexResult;
 
 struct {
 	int cx;
@@ -50,6 +59,17 @@ typedef struct {
     size_t size;   
 } KCursorArray;
 
+typedef struct {
+	KCursor c;
+	unsigned int len;
+} RegexKCursor;
+
+typedef struct {
+    RegexKCursor *array;
+    size_t used;
+    size_t size;   
+} RegexKCursorArray;
+
 static int kbds_in_use, kbds_quant;
 static int kbds_seltype = SEL_REGULAR;
 static int kbds_mode;
@@ -58,6 +78,7 @@ static Rune kbds_findchar;
 static KCursor kbds_c, kbds_oc;
 static CharArray flash_next_char_record, flash_used_label;
 static KCursorArray flash_kcursor_record;
+static RegexKCursorArray regex_kcursor_record;
 
 static const char *flash_key_label[52] = {
 	"j", "f", "d", "k", "l", "h", "g", "a", "s", "o", 
@@ -68,7 +89,20 @@ static const char *flash_key_label[52] = {
 	"K", "M", "N", "O", "P", "S"
 };
 
-lua_State *L;
+static const char *valid_char[] = {
+    "j", "f", "d", "k", "l", "h", "g", "a", "s", "o", 
+    "i", "e", "u", "n", "c", "m", "r", "p", "b", "t", 
+    "w", "v", "x", "y", "q", "z",
+    "I", "J", "L", "H", "A", "B", "Y", "D", "E", "F", 
+    "G", "Q", "R", "T", "U", "V", "W", "X", "Z", "C",
+    "K", "M", "N", "O", "P", "S",
+    ".", "/", "#", 
+    "-", "_", "=", "+", "(", ")", "@", "!", "$", "&", "*",
+    "[", "]", "{", "}", "|", "\\", ":", ";", "\"", "'",
+    "<", ">", ",", "?", "`", "~" 
+};
+
+lua_State *L = NULL;
 
 // Helper function to convert a Unicode code point to a UTF-8 string
 static int unicode_to_utf8(unsigned int codepoint, char *buffer, size_t bufsize) {
@@ -107,6 +141,16 @@ static int unicode_to_utf8(unsigned int codepoint, char *buffer, size_t bufsize)
     return 0;
 }
 
+int
+is_valid_char(Rune u) {
+	int i;
+	for ( i = 0; i < LEN(valid_char); i++) {
+		if (u == *valid_char[i]) {
+			return 1;
+		}
+	}
+	return 0;
+}
 
 void load_lua_init() {
     char *home_dir = getenv("HOME");
@@ -176,6 +220,32 @@ lua_zh_to_char(Rune u) {
 void close_init_lua() {
 	if (L)
     	lua_close(L);
+}
+
+void
+init_regex_kcursor_array(RegexKCursorArray *a, size_t initialSize) {
+    a->array = (RegexKCursor *)xmalloc(initialSize * sizeof(RegexKCursor));
+    a->used = 0;
+    a->size = initialSize;
+}
+
+void
+insert_regex_kcursor_array(RegexKCursorArray *a, RegexKCursor element) {
+    if (a->used == a->size) {
+        size_t newSize = a->size == 0 ? 1 : a->size * 2;
+        RegexKCursor *newArray = (RegexKCursor *)xrealloc(a->array, newSize * sizeof(RegexKCursor));
+        a->array = newArray;
+        a->size = newSize;
+    }
+    a->array[a->used++] = element;
+}
+
+void
+reset_regex_kcursor_array(RegexKCursorArray *a) {
+    free(a->array);
+    a->array = NULL;
+    a->used = 0;
+    a->size = 0;
 }
 
 void
@@ -652,18 +722,176 @@ kbds_ismatch(KCursor c)
 	return 1;
 }
 
+RegexResult get_position_from_regex(char *pattern, unsigned int *wstr) {
+	RegexResult result;
+
+	unsigned int match_start = 0, match_length = 0;
+    // 将宽字符串转换为UTF-8编码的字符串
+    size_t len = wcstombs(NULL, wstr, 0);
+    char *str = xmalloc(len + 1);
+
+
+
+    wcstombs(str, wstr, len + 1);
+
+    // 创建正则表达式对象
+    regex_t regex;
+    // 编译正则表达式
+    int ret = regcomp(&regex, pattern, REG_EXTENDED);
+    if (ret) {
+        char error_message[100];
+        regerror(ret, &regex, error_message, sizeof(error_message));
+        fprintf(stderr, "Regex compilation failed: %s\n", error_message);
+        free(str);
+        exit(EXIT_FAILURE);
+    }
+
+    // 用于存储匹配结果的结构体
+    regmatch_t pmatch[2]; // 注意：我们需要两个元素，一个用于整个匹配，一个用于捕获组
+    // 执行匹配
+    ret = regexec(&regex, str, 2, pmatch, 0);
+    if (!ret) {
+        // 匹配成功，提取匹配的字符串的索引和长度
+        result.start = pmatch[1].rm_so;
+        result.len = pmatch[1].rm_eo - pmatch[1].rm_so;
+		result.miss = 0;
+    } else if (ret == REG_NOMATCH) {
+		result.miss = 1;
+    } else {
+		result.miss = 1;
+    }
+
+    // 释放正则表达式对象和转换后的字符串
+    regfree(&regex);
+    free(str);	
+	return result;
+}
+
+int
+kbds_ismatch_regex(KCursor c,unsigned int head)
+{
+	KCursor m = c;
+	Rune *target_str;
+	RegexResult result;
+	RegexKCursor regex_kcursor;
+	int is_exists = 0;
+	int h,i,j,k;
+	int target_len =0;
+	char *pattern;
+
+	for (h=0; pattern_list[h] != NULL; h++) {
+		pattern = pattern_list[h];
+		target_len = m.len - head;
+		target_str = xmalloc((target_len + 1) * sizeof(Rune));
+		target_str[target_len] = L'\0';
+
+		for (i=1; i <target_len; i++) {
+		    for (size_t j = 0; j < i + 1; j++) {
+    	    	target_str[j] = c.line[head + j].u;
+    		}
+		}
+		result = get_position_from_regex(pattern, target_str);
+		if(result.miss == 0) {
+			m.x = head + result.start;
+			regex_kcursor.c = m;
+			regex_kcursor.len = result.len;
+			is_exists = 0;
+			for ( k = 0; k < regex_kcursor_record.used; k++) { 
+				if (regex_kcursor.c.x == regex_kcursor_record.array[k].c.x && regex_kcursor.c.y == regex_kcursor_record.array[k].c.y) {
+					is_exists = 1;
+					if (regex_kcursor.len > regex_kcursor_record.array[k].len) {
+						regex_kcursor_record.array[k].len = regex_kcursor.len;
+					}
+					break;
+				}
+			}
+			
+			if (is_exists == 0) {
+				regex_kcursor.c.line[regex_kcursor.c.x].ubk = regex_kcursor.c.line[regex_kcursor.c.x].u;
+				insert_regex_kcursor_array(&regex_kcursor_record, regex_kcursor);
+			}
+		}
+		XFree(target_str);
+	
+		
+	}
+
+}
+
+void
+init_flash() {
+	init_char_array(&flash_next_char_record, 1);
+	init_char_array(&flash_used_label, 1);
+	init_kcursor_array(&flash_kcursor_record, 1);	
+	init_regex_kcursor_array(&regex_kcursor_record, 1);
+}
+
+int
+kbds_search_regex(void)
+{
+	KCursor c;
+	unsigned int head,count,bottom,target_len,i,j;
+	Rune *target_str;
+
+	init_flash();
+
+	int begin = kbds_isflashmode() ? 0 : kbds_top();
+	int end = kbds_isflashmode() ? term.row - 1 : kbds_bot();
+
+	for (c.y = begin; c.y <= end; c.y++) {
+		c.line = TLINE(c.y);
+		c.len = tlinelen(c.line);
+		head = 0;
+		bottom = 0;
+		for (c.x = 0; c.x < c.len; c.x++) {
+			if(head == 0 && c.line[c.x].u != L' ' && is_valid_char(c.line[c.x].u)) {
+				head = c.x;
+			}
+
+			if(head !=0 && c.line[c.x].u == L' ')
+				bottom = c.x - 1;
+
+			if(head !=0 && c.x == c.len - 1)
+				bottom = c.x;
+
+			if (head != 0 && bottom != 0 && head != bottom) {
+				count += kbds_ismatch_regex(c,head);
+
+				head = 0;
+				bottom = 0;
+			}
+		}
+			
+	}
+
+	for ( i = 0; i < LEN(flash_key_label) && i < regex_kcursor_record.used; i++) {
+		regex_kcursor_record.array[i].c.line[regex_kcursor_record.array[i].c.x].mode |= ATTR_FLASH_LABEL;
+		insert_char_array(&flash_used_label, *flash_key_label[i]);
+		regex_kcursor_record.array[i].c.line[regex_kcursor_record.array[i].c.x].u = *flash_key_label[i];
+	}
+
+	for ( i = 0; i < regex_kcursor_record.used;i++) {
+		for ( j = 1; j < regex_kcursor_record.array[i].len; j++) {
+			regex_kcursor_record.array[i].c.line[regex_kcursor_record.array[i].c.x + j].mode |= ATTR_HIGHLIGHT;
+		}
+	}
+
+	tfulldirt();
+
+	return count;
+}
+
 int
 kbds_searchall(void)
 {
+	// kbds_search_regex();
 	KCursor c;
 	int count = 0;
 	int i, j, is_invalid_label;
 	CharArray valid_label;
 
-	init_char_array(&flash_next_char_record, 1);
+	init_flash();
 	init_char_array(&valid_label, 1);
-	init_char_array(&flash_used_label, 1);
-	init_kcursor_array(&flash_kcursor_record, 1);
 
 	if (!kbds_searchobj.len)
 		return 0;
@@ -706,10 +934,38 @@ kbds_searchall(void)
 	return count;
 }
 
+void copy_regex_result(KCursor m, unsigned int len) {
+	char *dest = xmalloc(len+1);
+	char *dup;
+	int i;
+	for (i = 0; i < len; i++) {
+		if (i == 0)
+			dest[i] = m.line[m.x].ubk;
+		else
+			dest[i] = m.line[m.x+i].u;
+	}
+	dest[len] = '\0';
+	dup = strdup(dest);
+	XFree(dest);
+
+	// 不知道这个要不要释放掉
+	xsetsel(dup);
+}
+
 void
 jump_to_label(Rune label, int len) {
 	int i,j;
 	int move_x = 0;
+	if (kbds_searchobj.len == 0) {
+		for ( i = 0; i < regex_kcursor_record.used; i++) {
+			if (label == regex_kcursor_record.array[i].c.line[regex_kcursor_record.array[i].c.x].u) {
+				copy_regex_result(regex_kcursor_record.array[i].c, regex_kcursor_record.array[i].len);
+				// kbds_moveto(regex_kcursor_record.array[i].c.x, regex_kcursor_record.array[i].c.y);
+				return;
+			}
+		}		
+	}
+
 	for ( i = 0; i < flash_kcursor_record.used; i++) {
 		if (label == flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].u) {
 			for (j=1;j<=len;j++){
@@ -730,6 +986,7 @@ clear_flash_cache() {
 	reset_char_array(&flash_next_char_record);
 	reset_char_array(&flash_used_label);
 	reset_kcursor_array(&flash_kcursor_record);
+	reset_regex_kcursor_array(&regex_kcursor_record);
 }
 
 void
@@ -926,7 +1183,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			 * statement and exit the keyboard selection mode immediately */
 			if (kbds_searchobj.directsearch)
 				break;
-			return 0;
+			return 0;		
 		case XK_BackSpace:
 			if (kbds_searchobj.cx == 0)
 				break;
@@ -1106,11 +1363,11 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			selextend(kbds_c.x, kbds_c.y, kbds_seltype, 0);
 		}
 		break;
-	case XK_o:
-	case XK_O:
+	case XK_p:
+	case XK_P:
 		ox = sel.ob.x; oy = sel.ob.y;
 		if (kbds_mode & KBDS_MODE_SELECT) {
-			if (kbds_seltype == SEL_RECTANGULAR && ksym == XK_O) {
+			if (kbds_seltype == SEL_RECTANGULAR && ksym == XK_P) {
 				selstart(kbds_c.x, oy, 0);
 				kbds_moveto(ox, kbds_c.y);
 			} else {
@@ -1151,6 +1408,14 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kbds_setmode(kbds_mode | KBDS_MODE_FLASH);
 		kbds_clearhighlights();
 		load_lua_init();
+		return 0;
+	case XK_o:
+	case -5:
+		kbds_searchobj.len = 0;
+		kbds_setmode(kbds_mode | KBDS_MODE_FLASH);
+		kbds_clearhighlights();
+		load_lua_init();
+		kbds_search_regex();
 		return 0;
 	case XK_q:
 	case XK_Escape:

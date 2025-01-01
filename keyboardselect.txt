@@ -8,8 +8,8 @@ Backspace or 0, $ or A:  move cursor to the beginning/end of the line
 ^ or I:                  move cursor to the beginning of the indented line
 !:                       move cursor to the middle of the row
 _:                       move cursor to the right edge of the screen
-o:                       move cursor to the beginning or end of the selection
-O:                       move cursor to the opposite corner of the rectangular selection
+p:                       move cursor to the beginning or end of the selection
+P:                       move cursor to the opposite corner of the rectangular selection
 w, W                     jump forward to the start of a word
 e                        jump forward to the end of a word (long match)
 b                        jump backward to the start of a word (long match)
@@ -29,6 +29,7 @@ v:                       toggle selection mode
 V:                       toggle line selection mode
 S:                       toggle regular/rectangular selection type
 s:                       from move mode switch to flash mode
+o:                       switch to regex mode
 Z, X:                    jump to previous/next shell prompt that contains the OSC "133;A" sequence
 0 - 9:                   set the quantifier
 u:                       open hyperlink under the cursor
