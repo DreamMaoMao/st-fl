@@ -1289,11 +1289,11 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			selextend(kbds_c.x, kbds_c.y, kbds_seltype, 0);
 		}
 		break;
-	case XK_o:
-	case XK_O:
+	case XK_p:
+	case XK_P:
 		ox = sel.ob.x; oy = sel.ob.y;
 		if (kbds_mode & KBDS_MODE_SELECT) {
-			if (kbds_seltype == SEL_RECTANGULAR && ksym == XK_O) {
+			if (kbds_seltype == SEL_RECTANGULAR && ksym == XK_P) {
 				selstart(kbds_c.x, oy, 0);
 				kbds_moveto(ox, kbds_c.y);
 			} else {
@@ -1306,7 +1306,6 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			kbds_moveto(kbds_c.x, oy);
 		}
 		break;
-	case XK_y:
 	case XK_Y:
 		if (kbds_isselectmode()) {
 			kbds_copytoclipboard();
@@ -1335,7 +1334,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kbds_setmode(kbds_mode | KBDS_MODE_FLASH);
 		kbds_clearhighlights();
 		return 0;
-	case XK_p:
+	case XK_o:
 	case -5:
 		kbds_searchobj.directsearch = (ksym == -5);
 		kbds_searchobj.dir = 1;
@@ -1358,6 +1357,7 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		}
 		kbds_setmode(KBDS_MODE_MOVE);
 		/* FALLTHROUGH */
+	case XK_y:
 	case XK_Return:
 		if (kbds_isselectmode())
 			kbds_copytoclipboard();
@@ -1406,20 +1406,19 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		break;
 	case XK_Home:
 	case XK_KP_Home:
-	case XK_H:
+	case XK_B:
 		kbds_moveto(kbds_c.x, 0);
 		break;
 	case XK_M:
 		kbds_moveto(kbds_c.x, alt ? (term.row-1) / 2
-		                          : MIN(term.c.y + term.scr, term.row-1) / 2);
+                                  : MIN(term.c.y + term.scr, term.row-1) / 2);
 		break;
-	case XK_L:
+	case XK_E:
 		kbds_moveto(kbds_c.x, alt ? term.row-1
 		                          : MIN(term.c.y + term.scr, term.row-1));
 		break;
 	case XK_Page_Up:
 	case XK_KP_Page_Up:
-	case XK_K:
 		prevscr = term.scr;
 		kscrollup(&((Arg){ .i = term.row }));
 		kbds_moveto(kbds_c.x, alt ? 0
@@ -1427,7 +1426,8 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		break;
 	case XK_Page_Down:
 	case XK_KP_Page_Down:
-	case XK_J:
+	case XK_d:
+	case XK_D:
 		prevscr = term.scr;
 		kscrolldown(&((Arg){ .i = term.row }));
 		kbds_moveto(kbds_c.x, alt ? term.row-1
@@ -1442,17 +1442,17 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kscrolldown(&((Arg){ .i = term.histf }));
 		kbds_moveto(kbds_c.x, alt ? term.row-1 : term.c.y);
 		break;
+	case XK_H:
 	case XK_b:
-	case XK_B:
-		kbds_nextword(1, -1, (ksym == XK_b) ? kbds_sdelim : kbds_ldelim);
+		kbds_nextword(1, -1, (ksym == XK_H) ? kbds_sdelim : kbds_ldelim);
 		break;
 	case XK_w:
 	case XK_W:
 		kbds_nextword(1, +1, (ksym == XK_w) ? kbds_sdelim : kbds_ldelim);
 		break;
+	case XK_L:
 	case XK_e:
-	case XK_E:
-		kbds_nextword(0, +1, (ksym == XK_e) ? kbds_sdelim : kbds_ldelim);
+		kbds_nextword(0, +1, (ksym == XK_L) ? kbds_sdelim : kbds_ldelim);
 		break;
 	case XK_z:
 		prevscr = term.scr;
@@ -1511,9 +1511,17 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 			return 0;
 		} else if (ksym == XK_k || ksym == XK_h)
 			i = ksym & 1;
-		else if (ksym == XK_l || ksym == XK_j)
+		else if (ksym == XK_K) {
+			i = ksym & 1;
+			kbds_quant = 5;
+			term.dirty[0] = 1;
+		} else if (ksym == XK_l || ksym == XK_j)
 			i = ((ksym & 6) | 4) >> 1;
-		else if (ksym >= XK_KP_Left && ksym <= XK_KP_Down)
+		else if (ksym == XK_J) {
+			i = ((ksym & 6) | 4) >> 1;
+			kbds_quant = 5;
+			term.dirty[0] = 1;
+		} else if (ksym >= XK_KP_Left && ksym <= XK_KP_Down)
 			i = ksym - XK_KP_Left;
 		else if ((XK_Home & ksym) != XK_Home || (i = (ksym ^ XK_Home) - 1) > 3)
 			return 0;
