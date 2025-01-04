@@ -412,6 +412,7 @@ static Shortcut shortcuts[] = {
 	{ TERMMOD,              XK_B,           searchbackward,  { 0 } },
 	{ ControlMask,          XK_i,           keyboard_flash,  { 0 } },
 	{ ControlMask,          XK_o,           keyboard_regex,  { 0 } },
+	{ ControlMask,          XK_u,           keyboard_url,    { 0 } },
 	{ TERMMOD,              XK_Z,           scrolltoprompt,  {.i = -1}, S_PRI },
 	{ TERMMOD,              XK_X,           scrolltoprompt,  {.i =  1}, S_PRI },
 	{ XK_NO_MOD,            XK_F11,         fullscreen,      {.i =  0} },

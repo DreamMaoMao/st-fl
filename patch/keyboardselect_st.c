@@ -13,6 +13,7 @@ enum keyboardselect_mode {
 	KBDS_MODE_SEARCH  = 1<<4,
 	KBDS_MODE_FLASH   = 1<<5,
 	KBDS_MODE_REGEX   = 1<<6,
+	KBDS_MODE_URL   = 1<<7,
 };
 
 enum cursor_wrap {
@@ -215,8 +216,11 @@ is_in_flash_next_char_record(Rune label) {
 void
 kbds_drawstatusbar(int y)
 {
-	static char *modes[] = { " MOVE ", "", " SELECT ", " RSELECT ", " LSELECT ",
-	                         " SEARCH FW ", " SEARCH BW ", " FIND FW ", " FIND BW ", " FLASH ", " REGEX " };
+	static char *modes[] = { 
+		" MOVE ", "", " SELECT ", " RSELECT ", " LSELECT ",
+	    " SEARCH FW ", " SEARCH BW ", " FIND FW ", " FIND BW ",
+		" FLASH ", " REGEX ", "  URL "
+	};
 	static char quant[20] = { ' ' };
 	static Glyph g;
 	int i, n, m;
@@ -231,7 +235,9 @@ kbds_drawstatusbar(int y)
 
 	/* draw the mode */
 	if (y == 0) {
-		if (kbds_isregexmode())
+		if (kbds_isurlmode())
+			m = 11;
+		else if (kbds_isregexmode())
 			m = 10;
 		else if (kbds_isflashmode())
 			m = 9;
@@ -412,6 +418,12 @@ int
 kbds_isregexmode(void)
 {
 	return kbds_in_use && (kbds_mode & KBDS_MODE_REGEX);
+}
+
+int
+kbds_isurlmode(void)
+{
+	return kbds_in_use && (kbds_mode & KBDS_MODE_URL);
 }
 
 void
@@ -783,6 +795,8 @@ kbds_search_regex(void)
 	KCursor c;
 	unsigned int head,count,bottom,target_len,i,j;
 	Rune *target_str;
+	int head_hit = 0;
+	int bottom_hit = 0;
 
 	init_char_array(&flash_used_label, 1);
 	init_regex_kcursor_array(&regex_kcursor_record, 1);
@@ -790,8 +804,8 @@ kbds_search_regex(void)
 	for (c.y = 0; c.y <= term.row - 1; c.y++) {
 		c.line = TLINE(c.y);
 		c.len = tlinelen(c.line);
-		int head_hit = 0;
-		int bottom_hit = 0;
+		head_hit = 0;
+		bottom_hit = 0;
 		head = 0;
 		bottom = 0;
 		for (c.x = 0; c.x < c.len; c.x++) {
@@ -856,9 +870,82 @@ void copy_regex_result(KCursor m, unsigned int len) {
 	xsetsel(dup);
 }
 
+int
+kbds_search_url(void)
+{
+	KCursor c,m;
+	unsigned int head,bottom,target_len,i,j;
+	unsigned int count = 0;
+	char *url;
+	int head_hit = 0;
+	int bottom_hit = 0;
+
+	init_char_array(&flash_used_label, 1);
+	init_kcursor_array(&flash_kcursor_record, 1);
+
+	for (c.y = 0; c.y <= term.row - 1; c.y++) {
+		c.line = TLINE(c.y);
+		c.len = tlinelen(c.line);
+		head_hit = 0;
+		bottom_hit = 0;
+		head = 0;
+		bottom = 0;
+		for (c.x = 0; c.x < c.len; c.x++) {
+			if(head_hit == 0 && bottom_hit == 0 && c.line[c.x].u != L' ' && is_valid_char(c.line[c.x].u)) {
+				head = c.x;
+				head_hit = 1;
+			}
+
+			if(head_hit !=0 && c.line[c.x].u == L' ') {
+				bottom = c.x - 1;
+				bottom_hit = 1;
+			}
+
+			if(head_hit !=0 && c.x == c.len - 1) {
+				bottom = c.x;
+				bottom_hit = 1;
+			}
+
+			if (head_hit != 0 && bottom_hit != 0 && head != bottom) {
+				url = detecturl(head,c.y,1);
+				if (url != NULL) {
+					m.x = head;
+					m.y = c.y;
+					m.line = TLINE(c.y);
+					m.len = tlinelen(m.line);
+					m.line[head].ubk |= m.line[head].u;
+					m.line[head].mode |= ATTR_FLASH_LABEL;
+					m.line[head].u = *flash_key_label[count];
+					insert_char_array(&flash_used_label, *flash_key_label[count]);
+					insert_kcursor_array(&flash_kcursor_record, m);
+					count++;
+				}
+				head = 0;
+				bottom = 0;
+				head_hit = 0;
+				bottom_hit = 0;
+			}
+		}
+			
+	}
+
+	tfulldirt();
+
+	return count;
+}
+
 void
 jump_to_label(Rune label, int len) {
 	int i;
+	if (kbds_isurlmode()) {
+		for ( i = 0; i < flash_kcursor_record.used; i++) {
+			if (label == flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].u) {
+				flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].u = flash_kcursor_record.array[i].line[flash_kcursor_record.array[i].x].ubk;
+				openUrlOnClick(flash_kcursor_record.array[i].x, flash_kcursor_record.array[i].y, url_opener);
+				return;
+			}
+		}		
+	}
 
 	if (kbds_isregexmode()) {
 		for ( i = 0; i < regex_kcursor_record.used; i++) {
@@ -886,6 +973,12 @@ clear_flash_cache() {
 void
 clear_regex_cache() {
 	reset_regex_kcursor_array(&regex_kcursor_record);
+	reset_char_array(&flash_used_label);
+}
+
+void
+clear_url_cache() {
+	reset_kcursor_array(&flash_kcursor_record);
 	reset_char_array(&flash_used_label);
 }
 
@@ -1070,6 +1163,39 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 	char *url;
 	Line line;
 	Rune u;
+
+	if (kbds_isurlmode() && !forcequit) {
+		switch (ksym) {
+		case XK_Escape:
+			kbds_searchobj.len = 0;
+			kbds_setmode(kbds_mode & ~KBDS_MODE_URL);
+			clear_url_cache();
+			kbds_clearhighlights();
+			/* If the direct search is aborted, we just go to the next switch
+			 * statement and exit the keyboard selection mode immediately */
+			if (kbds_searchobj.directsearch)
+				break;
+			return 0;
+		default:
+			if (len > 0) {
+				utf8decode(buf, &u, len);
+				if (is_in_flash_used_label(u) == 1) {
+					jump_to_label(u, kbds_searchobj.len);
+					kbds_searchobj.len = 0;
+					kbds_setmode(kbds_mode & ~KBDS_MODE_URL);
+					clear_url_cache();
+					kbds_clearhighlights();
+					kbds_selecttext();
+					kbds_in_use = kbds_quant = 0;
+					free(kbds_searchobj.str);
+					return MODE_KBDSELECT;
+				} else {
+					return 0;
+				}
+			}
+			break;
+		}
+	}
 
 	if (kbds_isregexmode() && !forcequit) {
 		switch (ksym) {
@@ -1344,6 +1470,13 @@ kbds_keyboardhandler(KeySym ksym, char *buf, int len, int forcequit)
 		kbds_setmode(kbds_mode | KBDS_MODE_REGEX);
 		kbds_clearhighlights();
 		kbds_search_regex();
+		return 0;
+	case -6:
+		kbds_searchobj.directsearch = (ksym == -6);
+		kbds_searchobj.dir = 1;
+		kbds_setmode(kbds_mode | KBDS_MODE_URL);
+		kbds_clearhighlights();
+		kbds_search_url();
 		return 0;
 	case XK_q:
 	case XK_Escape:
