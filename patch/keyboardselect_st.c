@@ -104,6 +104,22 @@ static const char *valid_char[] = {
     "<", ">", ",", "?", "`", "~" 
 };
 
+
+int is_chinese_character(wchar_t ch) {
+    // 检查字符是否在基本汉字和扩展区间的范围内
+    if ((ch >= 0x4E00 && ch <= 0x9FFF) || // 基本汉字
+        (ch >= 0x3400 && ch <= 0x4DBF) || // 扩展A
+        (ch >= 0x20000 && ch <= 0x2A6DF) || // 扩展B
+        (ch >= 0x2A700 && ch <= 0x2B73F) || // 扩展C
+        (ch >= 0x2B740 && ch <= 0x2B81F) || // 扩展D
+        (ch >= 0x2B820 && ch <= 0x2CEAF) || // 扩展E
+        (ch >= 0x2CEB0 && ch <= 0x2EBEF) || // 扩展F
+        (ch >= 0x30000 && ch <= 0x3134F)) { // 扩展G
+        return 1; // 是中文字符
+    }
+    return 0; // 不是中文字符
+}
+
 int
 is_valid_head_char(Rune u) {
 	int i;
@@ -868,21 +884,6 @@ void copy_regex_result(KCursor m, unsigned int len) {
 	XFree(dest);
 
 	xsetsel(dup);
-}
-
-int is_chinese_character(wchar_t ch) {
-    // 检查字符是否在基本汉字和扩展区间的范围内
-    if ((ch >= 0x4E00 && ch <= 0x9FFF) || // 基本汉字
-        (ch >= 0x3400 && ch <= 0x4DBF) || // 扩展A
-        (ch >= 0x20000 && ch <= 0x2A6DF) || // 扩展B
-        (ch >= 0x2A700 && ch <= 0x2B73F) || // 扩展C
-        (ch >= 0x2B740 && ch <= 0x2B81F) || // 扩展D
-        (ch >= 0x2B820 && ch <= 0x2CEAF) || // 扩展E
-        (ch >= 0x2CEB0 && ch <= 0x2EBEF) || // 扩展F
-        (ch >= 0x30000 && ch <= 0x3134F)) { // 扩展G
-        return 1; // 是中文字符
-    }
-    return 0; // 不是中文字符
 }
 
 int

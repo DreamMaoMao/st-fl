@@ -18,7 +18,7 @@ char *pattern_list[] = {
 	".*commit ([^ \n\\^]+)", //git hash in lazygit
 	"(http://[^ \n\\^]*)", // url
 	"(https://[^ \n\\^]*)", // url
-	"file://([^ \n\\^]*)", // url
+	"(file://[^ \n\\^]*)", // url
 	"(~{0,1}(/[a-zA-Z0-9_.-]+)+)", // file path
 	"(#[a-zA-Z0-9]{6}).*", // hex color
 	"([0-9a-zA-Z]{8}) [A-Za-z]{2} ", //git hash in lazygit
