@@ -809,7 +809,7 @@ kbds_search_regex(void)
 		head = 0;
 		bottom = 0;
 		for (c.x = 0; c.x < c.len; c.x++) {
-			if(head_hit == 0 && bottom_hit == 0 && c.line[c.x].u != L' ' && is_valid_head_char(c.line[c.x].u)) {
+			if(head_hit == 0 && bottom_hit == 0 && c.line[c.x].u != L' ' && (is_valid_head_char(c.line[c.x].u) || is_chinese_character(c.line[c.x].u))) {
 				head = c.x;
 				head_hit = 1;
 			}
@@ -870,6 +870,21 @@ void copy_regex_result(KCursor m, unsigned int len) {
 	xsetsel(dup);
 }
 
+int is_chinese_character(wchar_t ch) {
+    // 检查字符是否在基本汉字和扩展区间的范围内
+    if ((ch >= 0x4E00 && ch <= 0x9FFF) || // 基本汉字
+        (ch >= 0x3400 && ch <= 0x4DBF) || // 扩展A
+        (ch >= 0x20000 && ch <= 0x2A6DF) || // 扩展B
+        (ch >= 0x2A700 && ch <= 0x2B73F) || // 扩展C
+        (ch >= 0x2B740 && ch <= 0x2B81F) || // 扩展D
+        (ch >= 0x2B820 && ch <= 0x2CEAF) || // 扩展E
+        (ch >= 0x2CEB0 && ch <= 0x2EBEF) || // 扩展F
+        (ch >= 0x30000 && ch <= 0x3134F)) { // 扩展G
+        return 1; // 是中文字符
+    }
+    return 0; // 不是中文字符
+}
+
 int
 kbds_search_url(void)
 {
@@ -891,7 +906,7 @@ kbds_search_url(void)
 		head = 0;
 		bottom = 0;
 		for (c.x = 0; c.x < c.len; c.x++) {
-			if(head_hit == 0 && bottom_hit == 0 && c.line[c.x].u != L' ' && is_valid_head_char(c.line[c.x].u)) {
+			if(head_hit == 0 && bottom_hit == 0 && c.line[c.x].u != L' ' && (is_valid_head_char(c.line[c.x].u) || is_chinese_character(c.line[c.x].u))) {
 				head = c.x;
 				head_hit = 1;
 			}
