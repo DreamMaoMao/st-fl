@@ -238,6 +238,7 @@ typedef struct {
 	Atom xembed, wmdeletewin, netwmname, netwmiconname, netwmpid;
 	Atom netwmstate, netwmfullscreen;
 	Atom netwmicon;
+	Atom ximprotocol;
 	struct {
 		XIM xim;
 		XIC xic;
