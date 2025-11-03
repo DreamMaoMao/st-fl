@@ -19,7 +19,7 @@ config.h:
 	cp config.def.h config.h
 
 .c.o:
-	$(CC) $(STCFLAGS) -c $<
+	$(CC) $(STCFLAGS) $(FLASH_MODE_PINYIN) -c $<
 
 hb.o: $(LIGATURES_H)
 sixel.o: sixel.h sixel_hls.h
