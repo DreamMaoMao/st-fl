@@ -6,6 +6,17 @@
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
 static char *font = "Maple Mono NF CN:style=Medium:size=14:antialias=true:autohint=true";
+
+/* Bold font. Optional. Note: The font size is set automatically for this font. */
+static char *font_bold;
+
+/* Italic font. Optional. Note: The font size is set automatically for this font. */
+static char *font_italic;
+
+/* Bold italic font. Optional. Note: The font size is set automatically for this font. */
+static char *font_bolditalic;
+
+
 /* Spare fonts */
 static char *font2[] = {
 	"Source Han Sans CN:pixelsize=27:style=Bold:antialias=true:autohint=true",
@@ -265,23 +276,23 @@ float alphaUnfocused = 0.7;
 static const char *colorname[] = {
 	/* 8 normal colors */
 	"#0f0d0a",	// black 
-	"#cc0000",	// red
-	"#42B63F",	// green
-	"#c78603",	// yellow
-	"#c78603",	// blue
-	"#bf78cf",	// magenta/purple
-	"#6db723",	// cyan
+	"#d12c2c",	// red
+	"#8fd020",	// green
+	"#c99938",	// yellow
+	"#ca8b27",	// blue
+	"#c383d1",	// magenta/purple
+	"#86c31e",	// cyan
 	"#D1B88E",	// white
 
 	/* 8 bright colors */
 	"#a09b97", // gray
 	"#e70c0c", // red
-	"#8ae234", // green
-	"#de990e", // yellow
-	"#5F5FFF", // blue
+	"#97db22", // green
+	"#dfaa42", // yellow
+	"#da962a", // blue
 	"#d17ae5", // magenta/purple
-	"#83df27", // cyan
-	"#eeedec", // white
+	"#91d320", // cyan
+	"#e4dbd2", // white
 
 	[255] = 0,
 
@@ -772,6 +783,9 @@ float undercurl_height_scale = 1.0;
  */
 ResourcePref resources[] = {
 		{ "font",                STRING,  &font },
+		{ "font_bold",           STRING,  &font_bold },
+		{ "font_italic",         STRING,  &font_italic },
+		{ "font_bolditalic",     STRING,  &font_bolditalic },
 		{ "font_fallback1",      STRING,  &font2_xresources[0] },
 		{ "font_fallback2",      STRING,  &font2_xresources[1] },
 		{ "font_fallback3",      STRING,  &font2_xresources[2] },
