@@ -6,6 +6,17 @@
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
 static char *font = "Maple Mono NF CN:style=Medium:size=14:antialias=true:autohint=true";
+
+/* Bold font. Optional. Note: The font size is set automatically for this font. */
+static char *font_bold;
+
+/* Italic font. Optional. Note: The font size is set automatically for this font. */
+static char *font_italic;
+
+/* Bold italic font. Optional. Note: The font size is set automatically for this font. */
+static char *font_bolditalic;
+
+
 /* Spare fonts */
 static char *font2[] = {
 	"Source Han Sans CN:pixelsize=27:style=Bold:antialias=true:autohint=true",
@@ -772,6 +783,9 @@ float undercurl_height_scale = 1.0;
  */
 ResourcePref resources[] = {
 		{ "font",                STRING,  &font },
+		{ "font_bold",           STRING,  &font_bold },
+		{ "font_italic",         STRING,  &font_italic },
+		{ "font_bolditalic",     STRING,  &font_bolditalic },
 		{ "font_fallback1",      STRING,  &font2_xresources[0] },
 		{ "font_fallback2",      STRING,  &font2_xresources[1] },
 		{ "font_fallback3",      STRING,  &font2_xresources[2] },
