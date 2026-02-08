@@ -40,7 +40,7 @@ char *pattern_list[] = {
     "sha256:([0-9a-f]{64})",
     // File path
 	"((?:[.\\pL\\pN_\\-@~]+)?(?:/+[.\\pL\\pN_\\-@]+)+)",
-    "(core-[0-9a-z]+-[0-9a-z]+-[0-9a-z]+)",
+    "((core-.*-[0-9]+)\\S+)",
     // Color hex code
     "(#[0-9a-fA-F]{6})",
     // UUID
