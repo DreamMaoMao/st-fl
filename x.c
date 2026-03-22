@@ -2994,6 +2994,11 @@ run(void)
 	struct timespec seltv, *tv, now, trigger;
 	struct timespec lastscroll, lastblink, cursorlastblink;
 	double timeout, cursortimeout, scrolltimeout, vbelltimeout;
+	
+    static int resize_pending = 0;
+    static int resize_w = 0, resize_h = 0;
+    static struct timespec resize_last_time;
+    static const long debounce_ms = 30;
 
 	/* Waiting for window mapping */
 	do {
@@ -3052,20 +3057,25 @@ run(void)
 
 		xev = 0, w = win.w, h = win.h;
 		while (XPending(xw.dpy)) {
-			XNextEvent(xw.dpy, &ev);
-			if (!xev || xev == SelectionRequest)
-				xev = ev.type;
-			if (XFilterEvent(&ev, None))
-				continue;
-			if (ev.type == ConfigureNotify) {
-				w = ev.xconfigure.width;
-				h = ev.xconfigure.height;
-			} else if (handler[ev.type]) {
-				(handler[ev.type])(&ev);
-			}
+		    XNextEvent(xw.dpy, &ev);
+		    if (!xev || xev == SelectionRequest)
+		        xev = ev.type;
+		    if (XFilterEvent(&ev, None))
+		        continue;
+		    if (ev.type == ConfigureNotify) {
+		        w = ev.xconfigure.width;
+		        h = ev.xconfigure.height;
+		        /* 防抖处理 */
+		        if (!resize_pending) {
+		            clock_gettime(CLOCK_MONOTONIC, &resize_last_time);
+		        }
+		        resize_pending = 1;
+		        resize_w = w;
+		        resize_h = h;
+		    } else if (handler[ev.type]) {
+		        (handler[ev.type])(&ev);
+		    }
 		}
-		if (w != win.w || h != win.h)
-			cresize(w, h);
 
 		/*
 		 * To reduce flicker and tearing, when new content or event
@@ -3151,6 +3161,23 @@ run(void)
 			}
 			tfulldirt();
 		}
+
+        /* 防抖处理 */
+        if (resize_pending) {
+            struct timespec now_resize;
+            clock_gettime(CLOCK_MONOTONIC, &now_resize);
+            long elapsed = (now_resize.tv_sec - resize_last_time.tv_sec) * 1000 +
+                           (now_resize.tv_nsec - resize_last_time.tv_nsec) / 1000000;
+            if (elapsed < debounce_ms) {
+                long remain = debounce_ms - elapsed;
+                if (timeout < 0 || remain < timeout)
+                    timeout = remain;
+            } else {
+                if (resize_w != win.w || resize_h != win.h)
+                    cresize(resize_w, resize_h);
+                resize_pending = 0;
+            }
+        }
 
 		draw();
 		XFlush(xw.dpy);
